@@ -2,7 +2,7 @@
 
 ![Project Status](https://img.shields.io/badge/status-Server%20Backend%20Implemented-brightgreen)
 
-[//]: # (![License]&#40;https://img.shields.io/badge/license-MIT-blue.svg&#41;)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## Table of Contents
 1.  [Project Overview](#project-overview)
@@ -24,6 +24,7 @@
     * [Running the Server](#running-the-server)
 7.  [Testing](#testing)
 8.  [Technologies Used](#technologies-used)
+9. [License](#license)
 
 ## Project Overview
 
@@ -270,3 +271,8 @@ The project includes unit and integration tests using `pytest`.
   * **SQLite:** Lightweight database for data storage.
   * **Hugging Face `transformers`:** Used for natural language processing tasks (translation and sentiment analysis).
   * **Azure Cognitive Services Speech SDK:** For integrating with Azure's Speech-to-Text service.
+
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
