@@ -10,13 +10,13 @@ load_dotenv()
 
 def test_speech_to_text_returns_string():
     # Fetch environment variables
-    api_key = os.getenv("AZURE_SPEECH_SERVICES_API_KEY")
+    api_key = os.getenv("AZURE_SPEECH_API_KEY")
     region = os.getenv("AZURE_SERVICE_REGION")
-    language = os.getenv("AZURE_SPEECH_TO_TEXT_LANGUAGE")
+    language = os.getenv("SPEECH_LANG")
 
-    assert api_key, "Missing AZURE_SPEECH_SERVICES_API_KEY in environment variables."
+    assert api_key, "Missing AZURE_SPEECH_API_KEY in environment variables."
     assert region, "Missing AZURE_SERVICE_REGION in environment variables."
-    assert language, "Missing AZURE_SPEECH_TO_TEXT_LANGUAGE in environment variables."
+    assert language, "Missing SPEECH_LANG in environment variables."
 
     # Initialize the speech-to-text service
     service = SpeechToTextService(

@@ -8,11 +8,10 @@ class SpeechToTextService:
 
     def speech_to_text_from_file_once(self, audio_file_path: str):
         audio_config = speech.audio.AudioConfig(filename=audio_file_path)
-        # speech_recognizer is short-lived for recognize_once
         speech_recognizer = speech.SpeechRecognizer(speech_config=self.speech_config, audio_config=audio_config)
 
         print(f"Attempting to recognize speech from file: {audio_file_path}")
-        result = speech_recognizer.recognize_once_async().get()  # Blocking call
+        result = speech_recognizer.recognize_once_async().get()
 
         error_code = None
         recognized_text = None
@@ -22,7 +21,7 @@ class SpeechToTextService:
             print(f"RECOGNIZED: Text={recognized_text}")
         elif result.reason == speech.ResultReason.NoMatch:
             print("NOMATCH: Speech could not be recognized")
-            error_code = 404  # Or your preferred code for no match
+            error_code = 404
         elif result.reason == speech.ResultReason.Canceled:
             cancellation_details = result.cancellation_details
             print(f"CANCELED: Reason={cancellation_details.reason}")
@@ -33,6 +32,3 @@ class SpeechToTextService:
                 error_code = f"Canceled: {cancellation_details.reason}"
 
         return recognized_text, error_code
-
-# Your test would then call:
-# result_text, error = service.speech_to_text_from_file_once(str(audio_path))

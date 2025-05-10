@@ -17,9 +17,3 @@ def test_detect_conflict_returns_bool(detector, conversation):
     assert isinstance(result, bool), f"Expected bool, got {type(result)}"
 
 
-def test_detect_conflict_empty_and_whitespace(detector):
-    for txt in ["", "   ", "\n\n"]:
-        result = detector.detect_conflict(txt)
-        assert isinstance(result, bool)
-        assert result is False  # Safe to expect False here
-

@@ -1,4 +1,4 @@
-from database import Database
+from db.database import Database
 
 
 def seed_data(db: Database):
@@ -6,49 +6,66 @@ def seed_data(db: Database):
     Seeds the database with initial users, companies, and employees.
     """
 
-    # Admin users (username, password)
-    users = [
-        ("admin", "123"),
-        ("admin2", "123")
+    # 1. Create admin users
+    admins = [
+        {"username": "admin", "password": "123"},
+        {"username": "admin2", "password": "123"}
     ]
-    for username, password in users:
+    for admin in admins:
         try:
-            db.add_user(username=username, password=password)
-            print(f"Added user: {username}")
+            db.add_user(admin["username"], admin["password"])
+            print(f"Added user: {admin['username']}")
         except Exception as e:
-            print(f"Error adding user {username}: {e}")
+            print(f"Error adding user {admin['username']}: {e}")
 
-    # Add companies (name, subscription_expiration, admin_username)
+    # 2. Create companies and track their IDs by admin_username
     companies = [
-        ("AcmeCorp", "2025-12-31", "admin"),
-        ("BetaSolutions", "2026-06-30", "admin2")
+        {"name": "AcmeCorp", "expiration": "2025-12-31", "admin_username": "admin", "admin_password": "123"},
+        {"name": "BetaSolutions", "expiration": "2026-06-30", "admin_username": "admin2", "admin_password": "123"}
     ]
-    for name, expiration, admin in companies:
+    company_ids = {}
+    for comp in companies:
         try:
-            db.add_company(name=name, expiration=expiration, admin_username=admin)
-            print(f"Added company: {name}")
+            db.add_company(
+                name=comp["name"],
+                expiration=comp["expiration"],
+                admin_username=comp["admin_username"],
+                admin_password=comp["admin_password"]
+            )
+            company = db.get_company_by_admin(comp["admin_username"])
+            if company and "company_id" in company:
+                company_ids[comp["admin_username"]] = company["company_id"]
+                print(f"Added company: {comp['name']} (ID: {company['company_id']})")
+            else:
+                print(f"Company created but not found: {comp['name']}")
         except Exception as e:
-            print(f"Error adding company {name}: {e}")
+            print(f"Error adding company {comp['name']}: {e}")
 
-    # Add employees (company_id, user_username, first_name, last_name, gender, birthdate)
+    # 3. Create employees for each company
     employees = [
-        (1, "bob", "123","Bob", "Smith", "M", "1990-05-15"),
-        (2, "alice", "123", "Robert", "Johnson", "M", "1988-11-22")
+        {"admin_username": "admin", "username": "bob",   "password": "passbob",   "first_name": "Bob",   "last_name": "Smith",   "gender": "M", "birthdate": "1990-05-15"},
+        {"admin_username": "admin2","username": "alice", "password": "passalice", "first_name": "Alice", "last_name": "Johnson", "gender": "F", "birthdate": "1988-11-22"}
     ]
-    for company_id, username, password, first_name, last_name, gender, birthdate in employees:
+    for emp in employees:
+        admin_user = emp["admin_username"]
+        company_id = company_ids.get(admin_user)
+        if not company_id:
+            print(f"Skipping employee {emp['username']}: company for admin {admin_user} not found.")
+            continue
         try:
+            db.add_user(emp["username"], emp["password"])
             db.add_employee(
                 company_id=company_id,
-                username=username,
-                password=password,
-                first_name=first_name,
-                last_name=last_name,
-                gender=gender,
-                birthdate=birthdate
+                username=emp["username"],
+                password=emp["password"],
+                first_name=emp["first_name"],
+                last_name=emp["last_name"],
+                gender=emp.get("gender"),
+                birthdate=emp.get("birthdate")
             )
-            print(f"Added employee: {first_name} {last_name} to company ID {company_id}")
+            print(f"Added employee: {emp['first_name']} {emp['last_name']} to company ID {company_id}")
         except Exception as e:
-            print(f"Error adding employee {first_name} {last_name}: {e}")
+            print(f"Error adding employee {emp['username']}: {e}")
 
 
 if __name__ == "__main__":
