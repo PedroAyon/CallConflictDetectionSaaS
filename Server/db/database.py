@@ -8,16 +8,24 @@ class Database:
         self.schema_path = schema_path
         self._init_db()
 
+    def _get_connection(self) -> sqlite3.Connection:
+        """Returns a SQLite connection with foreign key enforcement."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        # Ensure foreign keys and cascading work
+        conn.execute("PRAGMA foreign_keys = ON;")
+        return conn
+
     def _init_db(self):
-        """Initializes the database using the schema.sql file."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA foreign_keys = ON;")
+        """Initializes the database using the schema.sql file (which includes PRAGMA settings)."""
+        conn = self._get_connection()
+        with conn:
             with open(self.schema_path, 'r') as f:
                 conn.executescript(f.read())
 
     def add_user(self, username: str, password: str):
         """Creates a user if not already exists."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.execute(
                 "INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)",
                 (username, password)
@@ -25,13 +33,14 @@ class Database:
 
     def get_user(self, username: str) -> Optional[Tuple[str, str]]:
         """Fetches a user by username."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT username, password FROM users WHERE username = ?",
                 (username,)
             )
-            return cursor.fetchone()
+            row = cursor.fetchone()
+            return dict(row) if row else None
 
     def add_company(
         self,
@@ -41,7 +50,7 @@ class Database:
         admin_password: str
     ):
         """Registers a new company and its admin user."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.execute(
                 "INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)",
                 (admin_username, admin_password)
@@ -53,8 +62,7 @@ class Database:
 
     def get_company_by_admin(self, admin_username: str) -> Optional[Dict]:
         """Fetches a company associated with an admin user."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+        with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT * FROM companies WHERE admin_username = ?",
@@ -74,7 +82,7 @@ class Database:
         birthdate: Optional[str] = None
     ):
         """Creates the employee and user and assigns them to a company."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.execute(
                 "INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)",
                 (username, password)
@@ -95,8 +103,7 @@ class Database:
 
     def get_employees_by_company(self, company_id: int) -> List[Dict]:
         """Returns all employees for a given company, including their username and password."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+        with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -121,7 +128,7 @@ class Database:
         birthdate: Optional[str] = None
     ) -> None:
         """Updates an employee's details and credentials (excluding company assignment)."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT user_username FROM employees WHERE employee_id = ?",
@@ -131,10 +138,12 @@ class Database:
             if not row:
                 raise ValueError(f"Employee ID {employee_id} does not exist.")
             old_username = row[0]
+            # Update the parent users table; ON UPDATE CASCADE will adjust the child user_username
             cursor.execute(
                 "UPDATE users SET username = ?, password = ? WHERE username = ?",
                 (new_username, new_password, old_username)
             )
+            # Update other employee fields
             cursor.execute(
                 """
                 UPDATE employees
@@ -147,7 +156,7 @@ class Database:
 
     def delete_employee(self, employee_id: int) -> None:
         """Deletes an employee and their user account."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT user_username FROM employees WHERE employee_id = ?",
@@ -177,7 +186,7 @@ class Database:
         conflict: Optional[bool]
     ):
         """Adds a call record for an employee."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO call_records (
@@ -193,33 +202,32 @@ class Database:
             )
 
     def get_call_records(
-            self,
-            company_id: int,
-            start_time: str,
-            end_time: str,
-            employee_id: Optional[int] = None
+        self,
+        company_id: int,
+        start_time: str,
+        end_time: str,
+        employee_id: Optional[int] = None
     ) -> List[Dict]:
         """Retrieves call records for a company within a datetime range,
            optionally filtered by a specific employee."""
-        query = """
+        query = (
+            """
             SELECT c.*
             FROM call_records c
             JOIN employees e ON c.employee_id = e.employee_id
             WHERE e.company_id = ?
-        """
+            """
+        )
         params: List = [company_id]
 
-        # Optionally filter by employee
         if employee_id is not None:
             query += " AND c.employee_id = ?"
             params.append(employee_id)
 
-        # Date‐range filter
         query += " AND c.call_timestamp BETWEEN ? AND ?"
         params.extend([start_time, end_time])
 
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+        with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]

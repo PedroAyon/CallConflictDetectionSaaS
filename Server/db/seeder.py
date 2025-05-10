@@ -49,3 +49,9 @@ def seed_data(db: Database):
             print(f"Added employee: {first_name} {last_name} to company ID {company_id}")
         except Exception as e:
             print(f"Error adding employee {first_name} {last_name}: {e}")
+
+
+if __name__ == "__main__":
+    database = Database()
+    seed_data(database)
+    print("Database seeding completed.")
