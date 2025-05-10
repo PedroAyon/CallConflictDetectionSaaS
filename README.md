@@ -1,17 +1,16 @@
 # Call Conflict Detection SaaS for Call Centers
 
 ![Project Status](https://img.shields.io/badge/status-Server%20Backend%20Implemented-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-blue.svg) ## Table of Contents
 
+[//]: # (![License]&#40;https://img.shields.io/badge/license-MIT-blue.svg&#41;)
+
+## Table of Contents
 1.  [Project Overview](#project-overview)
 2.  [Project Structure](#project-structure)
 3.  [Server Backend](#server-backend)
     * [Features](#features)
-    * [Architecture](#architecture)
-    * [Key Components](#key-components)
     * [Authentication and Authorization](#authentication-and-authorization)
     * [API Endpoints](#api-endpoints)
-    * [Error Handling](#error-handling)
 4.  [Planned Components](#planned-components)
     * [Dashboard](#dashboard)
     * [Android App](#android-app)
@@ -25,9 +24,6 @@
     * [Running the Server](#running-the-server)
 7.  [Testing](#testing)
 8.  [Technologies Used](#technologies-used)
-9.  [Future Enhancements](#future-enhancements)
-10. [Contributing](#contributing)
-11. [License](#license)
 
 ## Project Overview
 
