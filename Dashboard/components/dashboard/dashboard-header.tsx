@@ -11,12 +11,28 @@ import { es } from "date-fns/locale"
 import type { DateRange } from "react-day-picker"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
+import { api } from "@/lib/api"
 
 export function DashboardHeader() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [timeFilter, setTimeFilter] = useState("today")
   const [selectedEmployee, setSelectedEmployee] = useState("all")
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false)
+  const [companyName, setCompanyName] = useState("")
+
+  useEffect(() => {
+    const fetchCompanyDetails = async () => {
+      try {
+        const company = await api.company.getMyCompanyDetails()
+        setCompanyName(company.company_name)
+      } catch (error) {
+        console.error("Error fetching company details:", error)
+        setCompanyName("Error loading company name")
+      }
+    }
+
+    fetchCompanyDetails()
+  }, [])
 
   // Lista de empleados (en una implementación real, esto vendría de una API)
   const employees = [
@@ -35,7 +51,7 @@ export function DashboardHeader() {
   return (
     <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Nombre de la empresa</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{companyName || "Loading..."}</h1>
         <p className="text-muted-foreground">Métricas de llamadas de servicio al cliente</p>
       </div>
       <div className="flex flex-col space-y-2 md:flex-row md:space-x-2 md:space-y-0">

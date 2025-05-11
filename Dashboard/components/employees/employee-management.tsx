@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 import { EmployeeTable } from "@/components/employees/employee-table"
@@ -16,103 +16,121 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
-// Tipo para los empleados
-export type Employee = {
-  id: string
-  firstName: string
-  lastName: string
-  gender: string
-  age: number
-  username: string
-  password: string
-}
-
-// Datos de ejemplo
-const initialEmployees: Employee[] = [
-  {
-    id: "1",
-    firstName: "Juan",
-    lastName: "Pérez",
-    gender: "Masculino",
-    age: 32,
-    username: "juan.perez",
-    password: "password123",
-  },
-  {
-    id: "2",
-    firstName: "María",
-    lastName: "López",
-    gender: "Femenino",
-    age: 28,
-    username: "maria.lopez",
-    password: "securepass456",
-  },
-  {
-    id: "3",
-    firstName: "Carlos",
-    lastName: "Rodríguez",
-    gender: "Masculino",
-    age: 35,
-    username: "carlos.rodriguez",
-    password: "callcenter789",
-  },
-  {
-    id: "4",
-    firstName: "Ana",
-    lastName: "Martínez",
-    gender: "Femenino",
-    age: 30,
-    username: "ana.martinez",
-    password: "ana2023",
-  },
-  {
-    id: "5",
-    firstName: "Roberto",
-    lastName: "Gómez",
-    gender: "Masculino",
-    age: 42,
-    username: "roberto.gomez",
-    password: "roberto123",
-  },
-]
+import { api } from "@/lib/api"
+import { Employee, AddEmployeeRequest } from "@/lib/api/apiTypes"
+import { useToast } from "@/components/ui/use-toast"
 
 export function EmployeeManagement() {
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees)
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [passwordVisibility, setPasswordVisibility] = useState<Record<string, boolean>>({})
+  const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
 
-  const handleAddEmployee = (employee: Omit<Employee, "id">) => {
-    const newEmployee = {
-      ...employee,
-      id: (employees.length + 1).toString(),
+  // Fetch employees
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const company = await api.company.getMyCompanyDetails()
+        const apiEmployees = await api.employees.getEmployeesByCompany(company.company_id)
+        setEmployees(apiEmployees)
+      } catch (error) {
+        console.error("Error fetching employees:", error)
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los empleados",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
     }
-    setEmployees([...employees, newEmployee])
-    setIsAddDialogOpen(false)
+
+    fetchEmployees()
+  }, [toast])
+
+  const handleAddEmployee = async (employee: AddEmployeeRequest) => {
+    try {
+      const company = await api.company.getMyCompanyDetails()
+      await api.employees.addEmployee(company.company_id, employee)
+      
+      // Refetch employees to get the updated list
+      const apiEmployees = await api.employees.getEmployeesByCompany(company.company_id)
+      setEmployees(apiEmployees)
+      
+      setIsAddDialogOpen(false)
+      toast({
+        title: "Éxito",
+        description: "Empleado agregado correctamente",
+      })
+    } catch (error) {
+      console.error("Error adding employee:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo agregar el empleado",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleEditEmployee = (employee: Employee) => {
-    setEmployees(employees.map((emp) => (emp.id === employee.id ? employee : emp)))
-    setIsEditDialogOpen(false)
-    setSelectedEmployee(null)
-  }
-
-  const handleDeleteEmployee = () => {
-    if (selectedEmployee) {
-      setEmployees(employees.filter((emp) => emp.id !== selectedEmployee.id))
-      setIsDeleteDialogOpen(false)
+  const handleEditEmployee = async (employee: AddEmployeeRequest) => {
+    if (!selectedEmployee) return;
+    
+    try {
+      await api.employees.updateEmployee(selectedEmployee.employee_id, employee)
+      
+      // Refetch employees to get the updated list
+      const company = await api.company.getMyCompanyDetails()
+      const apiEmployees = await api.employees.getEmployeesByCompany(company.company_id)
+      setEmployees(apiEmployees)
+      
+      setIsEditDialogOpen(false)
       setSelectedEmployee(null)
+      toast({
+        title: "Éxito",
+        description: "Empleado actualizado correctamente",
+      })
+    } catch (error) {
+      console.error("Error updating employee:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el empleado",
+        variant: "destructive",
+      })
     }
   }
 
-  const togglePasswordVisibility = (employeeId: string) => {
-    setPasswordVisibility((prev) => ({
-      ...prev,
-      [employeeId]: !prev[employeeId],
-    }))
+  const handleDeleteEmployee = async () => {
+    if (selectedEmployee) {
+      try {
+        await api.employees.deleteEmployee(selectedEmployee.employee_id)
+        
+        // Refetch employees to get the updated list
+        const company = await api.company.getMyCompanyDetails()
+        const apiEmployees = await api.employees.getEmployeesByCompany(company.company_id)
+        setEmployees(apiEmployees)
+        
+        setIsDeleteDialogOpen(false)
+        setSelectedEmployee(null)
+        toast({
+          title: "Éxito",
+          description: "Empleado eliminado correctamente",
+        })
+      } catch (error) {
+        console.error("Error deleting employee:", error)
+        toast({
+          title: "Error",
+          description: "No se pudo eliminar el empleado",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  if (isLoading) {
+    return <div>Cargando empleados...</div>
   }
 
   return (
@@ -127,8 +145,6 @@ export function EmployeeManagement() {
 
       <EmployeeTable
         employees={employees}
-        passwordVisibility={passwordVisibility}
-        onTogglePasswordVisibility={togglePasswordVisibility}
         onEdit={(employee) => {
           setSelectedEmployee(employee)
           setIsEditDialogOpen(true)
@@ -167,8 +183,8 @@ export function EmployeeManagement() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente al empleado {selectedEmployee?.firstName}{" "}
-              {selectedEmployee?.lastName} del sistema.
+              Esta acción no se puede deshacer. Se eliminará permanentemente al empleado {selectedEmployee?.first_name}{" "}
+              {selectedEmployee?.last_name} del sistema.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
