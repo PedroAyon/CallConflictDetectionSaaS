@@ -1,7 +1,8 @@
 import sqlite3
-from typing import List, Tuple, Optional, Dict
-from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
+from typing import List, Optional, Dict
+
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class Database:
