@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { PlusCircle } from "lucide-react"
+import { PlusCircle, Search } from "lucide-react"
 import { EmployeeTable } from "@/components/employees/employee-table"
 import { EmployeeForm } from "@/components/employees/employee-form"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -16,17 +16,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
 import { Employee, AddEmployeeRequest } from "@/lib/api/apiTypes"
 import { useToast } from "@/components/ui/use-toast"
 
 export function EmployeeManagement() {
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
   const { toast } = useToast()
 
   // Fetch employees
@@ -36,6 +39,7 @@ export function EmployeeManagement() {
         const company = await api.company.getMyCompanyDetails()
         const apiEmployees = await api.employees.getEmployeesByCompany(company.company_id)
         setEmployees(apiEmployees)
+        setFilteredEmployees(apiEmployees)
       } catch (error) {
         console.error("Error fetching employees:", error)
         toast({
@@ -50,6 +54,23 @@ export function EmployeeManagement() {
 
     fetchEmployees()
   }, [toast])
+
+  // Filter employees based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredEmployees(employees)
+      return
+    }
+
+    const query = searchQuery.toLowerCase().trim()
+    const filtered = employees.filter(
+      (employee) =>
+        employee.first_name.toLowerCase().includes(query) ||
+        employee.last_name.toLowerCase().includes(query) ||
+        employee.username.toLowerCase().includes(query)
+    )
+    setFilteredEmployees(filtered)
+  }, [searchQuery, employees])
 
   const handleAddEmployee = async (employee: AddEmployeeRequest) => {
     try {
@@ -135,16 +156,27 @@ export function EmployeeManagement() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Lista de Empleados</h2>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Agregar Empleado
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="relative w-[300px]">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nombre, apellido o usuario..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Agregar Empleado
+          </Button>
+        </div>
       </div>
 
       <EmployeeTable
-        employees={employees}
+        employees={filteredEmployees}
         onEdit={(employee) => {
           setSelectedEmployee(employee)
           setIsEditDialogOpen(true)
