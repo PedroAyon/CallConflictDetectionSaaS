@@ -18,11 +18,17 @@ import {Alert, AlertDescription} from "@/components/ui/alert"
 import {useAuth} from "@/lib/hooks/useAuth"
 
 export default function LoginForm() {
-    useRouter();
-    const {login, isLoading, error} = useAuth()
+    const router = useRouter()
+    const {isLoggedIn, login, isLoading, error} = useAuth()
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
 
+    // If already logged in, redirect to dashboard
+    useEffect(() => {
+        if (isLoggedIn) {
+            router.replace("/dashboard")
+        }
+    }, [isLoggedIn, router])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -88,7 +94,7 @@ export default function LoginForm() {
             </CardContent>
             <CardFooter className="flex justify-center">
                 <p className="text-sm text-gray-500">
-                    ¿Olvidaste tu contraseña? Contacta al administrador
+                    ¿Olvidaste tu contraseña? Contacta a atención al cliente
                 </p>
             </CardFooter>
         </Card>
