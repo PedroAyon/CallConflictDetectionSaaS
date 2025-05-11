@@ -19,20 +19,31 @@ export function DashboardHeader() {
   const [selectedEmployee, setSelectedEmployee] = useState("all")
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false)
   const [companyName, setCompanyName] = useState("")
+  const [subscriptionExpiration, setSubscriptionExpiration] = useState<string>("")
 
   useEffect(() => {
     const fetchCompanyDetails = async () => {
       try {
         const company = await api.company.getMyCompanyDetails()
         setCompanyName(company.company_name)
+        setSubscriptionExpiration(company.subscription_expiration)
       } catch (error) {
         console.error("Error fetching company details:", error)
         setCompanyName("Error loading company name")
+        setSubscriptionExpiration("")
       }
     }
 
     fetchCompanyDetails()
   }, [])
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "d 'de' MMMM 'de' yyyy", { locale: es })
+    } catch (error) {
+      return dateString
+    }
+  }
 
   // Lista de empleados (en una implementación real, esto vendría de una API)
   const employees = [
@@ -52,7 +63,14 @@ export function DashboardHeader() {
     <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{companyName || "Loading..."}</h1>
-        <p className="text-muted-foreground">Métricas de llamadas de servicio al cliente</p>
+        <p className="text-muted-foreground">
+          {subscriptionExpiration && (
+            <span className="block mt-1">
+              Suscripción válida hasta: {formatDate(subscriptionExpiration)}
+            </span>
+          )}
+          <b>Métricas de llamadas de servicio al cliente</b>
+        </p>
       </div>
       <div className="flex flex-col space-y-2 md:flex-row md:space-x-2 md:space-y-0">
         <Popover open={employeeSearchOpen} onOpenChange={setEmployeeSearchOpen}>
