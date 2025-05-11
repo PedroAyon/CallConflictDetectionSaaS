@@ -353,18 +353,27 @@ async def api_get_employees_by_company(company_id: int):
     return jsonify(employees), 200
 
 
+# In your Flask app:
+
 @app.route('/employees/<int:employee_id>', methods=['PUT'])
 @check_admin_of_employee_company(employee_id_arg_name='employee_id')
 async def api_update_employee(employee_id: int):
     data = request.get_json()
-    required_fields = ['username', 'password', 'first_name', 'last_name']  # Password required for update
-    if not data or not all(
-            field in data for field in required_fields):  # if password is meant to be optional, adjust this
+
+    required_fields = ['username', 'first_name', 'last_name']
+    if not data or not all(field in data for field in required_fields):
         return jsonify({"error": "Missing required fields for employee update"}), 400
-    gender = data.get('gender')
-    birthdate = data.get('birthdate')
+
+    username   = data['username']
+    new_password = data.get('password')       # ← optional
+    first_name = data['first_name']
+    last_name  = data['last_name']
+    gender     = data.get('gender')
+    birthdate  = data.get('birthdate')
+
     if gender and gender not in ('M', 'F'):
         return jsonify({"error": "Invalid gender. Must be 'M' or 'F'."}), 400
+
     if birthdate:
         try:
             datetime.strptime(birthdate, '%Y-%m-%d')
@@ -372,15 +381,22 @@ async def api_update_employee(employee_id: int):
             return jsonify({"error": "Invalid date format for birthdate. Use YYYY-MM-DD."}), 400
 
     try:
-        # Password will be hashed by db_service.update_employee
         await run_blocking_io(
             db_service.update_employee,
-            employee_id, data['username'], data['password'], data['first_name'],
-            data['last_name'], gender, birthdate
+            employee_id,
+            username,
+            new_password,    # can be None
+            first_name,
+            last_name,
+            gender,
+            birthdate
         )
         return jsonify({"message": f"Employee {employee_id} updated successfully"}), 200
+
     except ValueError as e:
+        # Employee not found, etc.
         return jsonify({"error": str(e)}), 404
+
 
 
 @app.route('/employees/<int:employee_id>', methods=['DELETE'])

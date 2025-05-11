@@ -185,17 +185,17 @@ class Database:
             return [dict(row) for row in cursor.fetchall()]
 
     def update_employee(
-            self,
-            employee_id: int,
-            new_username: str,
-            new_password: str,  # This password will be hashed
-            first_name: str,
-            last_name: str,
-            gender: Optional[str] = None,
-            birthdate: Optional[str] = None
+        self,
+        employee_id: int,
+        new_username: str,
+        new_password: Optional[str],   # now optional
+        first_name: str,
+        last_name: str,
+        gender: Optional[str] = None,
+        birthdate: Optional[str] = None
     ) -> None:
-        hashed_new_password = generate_password_hash(new_password)
         last_updated = datetime.now(timezone.utc)
+
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -207,26 +207,33 @@ class Database:
                 raise ValueError(f"Employee ID {employee_id} does not exist.")
             old_username = row['user_username']
 
-            # Update users table.
-            # If usernames can change, ensure ON UPDATE CASCADE is set on employees.user_username FK.
-            conn.execute(
-                "UPDATE users SET username = ?, password = ?, last_updated = ? WHERE username = ?",
-                (new_username, hashed_new_password, last_updated, old_username)
-            )
+            # 1) Update users table
+            if new_password is not None:
+                # hash the new password
+                hashed_new_password = generate_password_hash(new_password)
+                conn.execute(
+                    "UPDATE users SET username = ?, password = ?, last_updated = ? WHERE username = ?",
+                    (new_username, hashed_new_password, last_updated, old_username)
+                )
+            else:
+                # keep existing password hash
+                conn.execute(
+                    "UPDATE users SET username = ?, last_updated = ? WHERE username = ?",
+                    (new_username, last_updated, old_username)
+                )
 
+            # 2) Prepare fields for employees table
             update_fields = {
                 "first_name": first_name,
                 "last_name": last_name,
                 "gender": gender,
                 "birthdate": birthdate,
             }
-            # If username itself is being changed, and no ON UPDATE CASCADE on employees.user_username
-            # then employees.user_username needs to be updated explicitly.
-            # Assuming ON UPDATE CASCADE is in place from schema.sql for simplicity here for users.username -> employees.user_username
+            # handle username change cascading
             if new_username != old_username:
-                update_fields["user_username"] = new_username  # Update username in employees table if it changed
+                update_fields["user_username"] = new_username
 
-            set_clause = ", ".join([f"{key} = ?" for key in update_fields.keys()])
+            set_clause = ", ".join(f"{key} = ?" for key in update_fields)
             params = list(update_fields.values())
             params.append(employee_id)
 
@@ -235,6 +242,7 @@ class Database:
                 tuple(params)
             )
             conn.commit()
+
 
     def delete_employee(self, employee_id: int) -> None:
         with self._get_connection() as conn:
