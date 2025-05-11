@@ -1,148 +1,128 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Play, FileText } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-
-// Datos de ejemplo para la tabla de llamadas
-const callsData = [
-  {
-    id: "1",
-    employeeId: "1",
-    employeeName: "Juan Pérez",
-    date: "2023-04-28T10:30:00",
-    duration: "00:08:45",
-    hasConflict: true,
-    transcript: "Cliente: Llevo esperando una solución más de un mes...\nAgente: Entiendo su frustración, pero...",
-    audioUrl: "/placeholder.mp3",
-  },
-  {
-    id: "2",
-    employeeId: "2",
-    employeeName: "María López",
-    date: "2023-04-28T11:15:00",
-    duration: "00:05:22",
-    hasConflict: false,
-    transcript: "Cliente: Necesito información sobre mi pedido...\nAgente: Con gusto le ayudo...",
-    audioUrl: "/placeholder.mp3",
-  },
-  {
-    id: "3",
-    employeeId: "3",
-    employeeName: "Carlos Rodríguez",
-    date: "2023-04-28T12:05:00",
-    duration: "00:10:18",
-    hasConflict: true,
-    transcript:
-      "Cliente: Este es el colmo, quiero hablar con un supervisor...\nAgente: Por favor, permítame resolver su problema...",
-    audioUrl: "/placeholder.mp3",
-  },
-  {
-    id: "4",
-    employeeId: "1",
-    employeeName: "Juan Pérez",
-    date: "2023-04-28T13:45:00",
-    duration: "00:04:30",
-    hasConflict: false,
-    transcript: "Cliente: Gracias por la información...\nAgente: Un placer ayudarle...",
-    audioUrl: "/placeholder.mp3",
-  },
-  {
-    id: "5",
-    employeeId: "2",
-    employeeName: "María López",
-    date: "2023-04-28T14:20:00",
-    duration: "00:07:15",
-    hasConflict: false,
-    transcript: "Cliente: ¿Cuándo llegará mi pedido?...\nAgente: Según nuestro sistema, llegará mañana...",
-    audioUrl: "/placeholder.mp3",
-  },
-]
+import { Play, Pause } from "lucide-react"
+import { useDashboardData } from "@/lib/hooks/useDashboardData"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 
 export function CallsTable() {
-  const [selectedCall, setSelectedCall] = useState<(typeof callsData)[0] | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const { callRecords, isLoading, error, fetchCallRecords, getCallRecording, fetchCompanyByAdmin } = useDashboardData()
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null)
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date)
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const company = await fetchCompanyByAdmin() // The hook will use the stored token
+        if (company?.company_id) {
+          const defaultFilters = {
+            start_time: format(new Date().setHours(0, 0, 0, 0), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"),
+            end_time: format(new Date(), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"),
+          }
+          await fetchCallRecords(company.company_id, defaultFilters)
+        }
+      } catch (error) {
+        console.error("Error fetching calls data:", error)
+      }
+    }
+
+    fetchData()
+  }, [fetchCallRecords, fetchCompanyByAdmin])
+
+  const handlePlayAudio = async (filename: string) => {
+    try {
+      if (playingAudio === filename) {
+        // Stop playing
+        audioElement?.pause()
+        setPlayingAudio(null)
+        setAudioElement(null)
+        return
+      }
+
+      // Stop any currently playing audio
+      if (audioElement) {
+        audioElement.pause()
+        setAudioElement(null)
+      }
+
+      // Get the audio file
+      const audioBlob = await getCallRecording(filename)
+      const audioUrl = URL.createObjectURL(audioBlob)
+      const audio = new Audio(audioUrl)
+      
+      audio.onended = () => {
+        setPlayingAudio(null)
+        setAudioElement(null)
+        URL.revokeObjectURL(audioUrl)
+      }
+
+      setAudioElement(audio)
+      setPlayingAudio(filename)
+      audio.play()
+    } catch (error) {
+      console.error("Error playing audio:", error)
+    }
   }
 
-  const handleViewTranscript = (call: (typeof callsData)[0]) => {
-    setSelectedCall(call)
-    setIsDialogOpen(true)
+  if (isLoading) {
+    return <div>Cargando llamadas...</div>
+  }
+
+  if (error) {
+    return <div className="text-red-500">Error: {error}</div>
+  }
+
+  if (!callRecords.length) {
+    return <div>No hay llamadas registradas</div>
   }
 
   return (
-    <>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Empleado</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Duración</TableHead>
-              <TableHead>Análisis</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {callsData.map((call) => (
-              <TableRow key={call.id}>
-                <TableCell className="font-medium">{call.employeeName}</TableCell>
-                <TableCell>{formatDate(call.date)}</TableCell>
-                <TableCell>{call.duration}</TableCell>
-                <TableCell>
-                  {call.hasConflict ? (
-                    <Badge variant="destructive">Conflicto</Badge>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Empleado</TableHead>
+            <TableHead>Fecha y Hora</TableHead>
+            <TableHead>Duración</TableHead>
+            <TableHead>Conflicto</TableHead>
+            <TableHead>Audio</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {callRecords.map((record) => (
+            <TableRow key={record.record_id}>
+              <TableCell>
+                {record.employee_first_name} {record.employee_last_name}
+              </TableCell>
+              <TableCell>
+                {format(new Date(record.call_timestamp), "dd/MM/yyyy HH:mm:ss", { locale: es })}
+              </TableCell>
+              <TableCell>
+                {Math.floor(record.call_duration_seconds / 60)}:{(record.call_duration_seconds % 60).toString().padStart(2, '0')}
+              </TableCell>
+              <TableCell>
+                {record.conflict_value !== null ? `${(record.conflict_value * 100).toFixed(1)}%` : "N/A"}
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handlePlayAudio(record.audio_file_path)}
+                >
+                  {playingAudio === record.audio_file_path ? (
+                    <Pause className="h-4 w-4" />
                   ) : (
-                    <Badge variant="outline">Normal</Badge>
+                    <Play className="h-4 w-4" />
                   )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="icon" onClick={() => handleViewTranscript(call)}>
-                      <FileText className="h-4 w-4" />
-                      <span className="sr-only">Ver transcripción</span>
-                    </Button>
-                    <Button variant="outline" size="icon">
-                      <Play className="h-4 w-4" />
-                      <span className="sr-only">Reproducir audio</span>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Transcripción de Llamada</DialogTitle>
-            <DialogDescription>
-              {selectedCall && (
-                <span>
-                  {selectedCall.employeeName} - {formatDate(selectedCall.date)} - Duración: {selectedCall.duration}
-                </span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="max-h-96 overflow-y-auto rounded-md bg-muted p-4">
-            <pre className="whitespace-pre-wrap font-mono text-sm">{selectedCall?.transcript}</pre>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   )
 }

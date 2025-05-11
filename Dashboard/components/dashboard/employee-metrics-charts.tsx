@@ -1,34 +1,64 @@
 "use client"
 
+import { useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
-
-// Datos de ejemplo para las gráficas
-const employeeCallsData = [
-  { name: "Juan Pérez", calls: 320 },
-  { name: "María López", calls: 280 },
-  { name: "Carlos Rodríguez", calls: 220 },
-  { name: "Ana Martínez", calls: 190 },
-  { name: "Roberto Gómez", calls: 235 },
-]
-
-const employeeTimeData = [
-  { name: "Juan Pérez", hours: 28.5 },
-  { name: "María López", hours: 25.2 },
-  { name: "Carlos Rodríguez", hours: 18.7 },
-  { name: "Ana Martínez", hours: 15.3 },
-  { name: "Roberto Gómez", hours: 21.8 },
-]
-
-const employeeConflictData = [
-  { name: "Juan Pérez", percentage: 8.2 },
-  { name: "María López", percentage: 12.5 },
-  { name: "Carlos Rodríguez", percentage: 15.8 },
-  { name: "Ana Martínez", percentage: 7.3 },
-  { name: "Roberto Gómez", percentage: 10.1 },
-]
+import { useDashboardData } from "@/lib/hooks/useDashboardData"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 
 export function EmployeeMetricsCharts() {
+  const { callRecords, employees, isLoading, error, fetchCallRecords, fetchEmployees, fetchCompanyByAdmin } = useDashboardData()
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const company = await fetchCompanyByAdmin() // The hook will use the stored token
+        if (company?.company_id) {
+          const defaultFilters = {
+            start_time: format(new Date().setHours(0, 0, 0, 0), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"),
+            end_time: format(new Date(), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"),
+          }
+          await Promise.all([
+            fetchEmployees(company.company_id),
+            fetchCallRecords(company.company_id, defaultFilters),
+          ])
+        }
+      } catch (error) {
+        console.error("Error fetching charts data:", error)
+      }
+    }
+
+    fetchData()
+  }, [fetchCallRecords, fetchEmployees, fetchCompanyByAdmin])
+
+  if (isLoading) {
+    return <div>Cargando gráficas...</div>
+  }
+
+  if (error) {
+    return <div className="text-red-500">Error: {error}</div>
+  }
+
+  // Process data for charts
+  const employeeMetrics = employees.map(employee => {
+    const employeeCalls = callRecords.filter(record => record.employee_id === employee.employee_id)
+    const totalCalls = employeeCalls.length
+    const totalDuration = employeeCalls.reduce((sum, record) => sum + record.call_duration_seconds, 0)
+    const conflictCalls = employeeCalls.filter(record => record.conflict_value !== null && record.conflict_value > 0)
+    const conflictPercentage = totalCalls > 0 ? (conflictCalls.length / totalCalls) * 100 : 0
+
+    return {
+      name: `${employee.first_name} ${employee.last_name}`,
+      calls: totalCalls,
+      hours: totalDuration / 3600, // Convert seconds to hours
+      percentage: conflictPercentage,
+    }
+  })
+
+  // Sort by number of calls for better visualization
+  const sortedMetrics = [...employeeMetrics].sort((a, b) => b.calls - a.calls)
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <Card>
@@ -38,7 +68,7 @@ export function EmployeeMetricsCharts() {
         </CardHeader>
         <CardContent className="px-2">
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={employeeCallsData}>
+            <BarChart data={sortedMetrics}>
               <XAxis dataKey="name" tickFormatter={(value) => value.split(" ")[0]} />
               <YAxis />
               <Tooltip />
@@ -55,10 +85,10 @@ export function EmployeeMetricsCharts() {
         </CardHeader>
         <CardContent className="px-2">
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={employeeTimeData}>
+            <BarChart data={sortedMetrics}>
               <XAxis dataKey="name" tickFormatter={(value) => value.split(" ")[0]} />
               <YAxis />
-              <Tooltip />
+              <Tooltip formatter={(value: number) => `${value.toFixed(1)} hrs`} />
               <Bar dataKey="hours" fill="#16a34a" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -72,10 +102,10 @@ export function EmployeeMetricsCharts() {
         </CardHeader>
         <CardContent className="px-2">
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={employeeConflictData}>
+            <BarChart data={sortedMetrics}>
               <XAxis dataKey="name" tickFormatter={(value) => value.split(" ")[0]} />
               <YAxis />
-              <Tooltip />
+              <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
               <Bar dataKey="percentage" fill="#dc2626" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

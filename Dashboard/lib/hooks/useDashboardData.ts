@@ -25,7 +25,7 @@ export function useDashboardData() {
     const clearError = () => setDataState(prev => ({ ...prev, error: null }));
     const setLoading = (loading: boolean) => setDataState(prev => ({ ...prev, isLoading: loading }));
 
-    const fetchCompanyByAdmin = useCallback(async (adminUsername: string) => {
+    const fetchCompanyByAdmin = useCallback(async () => {
         clearError();
         setLoading(true);
         try {
@@ -90,15 +90,15 @@ export function useDashboardData() {
     }, []);
 
 
-    const fetchAllDashboardData = useCallback(async (adminUsername: string, defaultFilters: CallRecordFilters) => {
+    const fetchAllDashboardData = useCallback(async (adminUsername: string, filters: CallRecordFilters) => {
         setLoading(true);
         try {
-            const companyData = await fetchCompanyByAdmin(adminUsername);
+            const companyData = await fetchCompanyByAdmin();
             if (companyData?.company_id) {
                 await Promise.all([
                     fetchEmployees(companyData.company_id),
-                    fetchCallRecords(companyData.company_id, defaultFilters),
-                    fetchCallRecordStats(companyData.company_id, defaultFilters),
+                    fetchCallRecords(companyData.company_id, filters),
+                    fetchCallRecordStats(companyData.company_id, filters),
                 ]);
             }
         } catch (err) {
@@ -115,7 +115,7 @@ export function useDashboardData() {
         fetchEmployees,
         fetchCallRecords,
         fetchCallRecordStats,
-        serveRecording: getCallRecording,
+        getCallRecording: getCallRecording,
         fetchAllDashboardData: fetchAllDashboardData,
         clearDashboardDataError: clearError,
     };
