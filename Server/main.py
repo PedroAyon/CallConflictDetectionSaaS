@@ -8,6 +8,7 @@ from functools import wraps
 import jwt
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_from_directory, g
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 from conflict_detection import ConflictDetector
@@ -26,6 +27,8 @@ SPEECH_LANG = os.getenv("SPEECH_LANG", "en-US")
 ALLOWED_AUDIO_EXTENSIONS = {'wav', 'mp3', 'm4a', 'ogg', 'flac', 'aac', 'mp4'}
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS on all routes
+
 app.config['MAX_CONTENT_LENGTH'] = 64 * 1024 * 1024
 
 app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "your-super-secret-and-long-key-please-change")
