@@ -300,13 +300,21 @@ async def api_add_company():
         return jsonify({"error": "Company created but could not be retrieved immediately."}), 207
 
 
-@app.route('/companies/admin/<admin_username>', methods=['GET'])
-@check_admin_self
-async def api_get_company_by_admin(admin_username: str):
-    company = await run_blocking_io(db_service.get_company_by_admin, admin_username=admin_username)
+# MODIFIED ENDPOINT:
+@app.route('/companies/admin/me', methods=['GET'])
+@token_required
+@admin_only
+async def api_get_my_company_details():
+    admin_username_from_token = g.current_user.get('sub')
+
+    if not admin_username_from_token: # Should be caught by token_required logic if 'sub' is missing
+        app.logger.error("Admin username ('sub') not found in token despite decorators.")
+        return jsonify({"error": "Critical: Admin username not found in token payload."}), 500
+
+    company = await run_blocking_io(db_service.get_company_by_admin, admin_username=admin_username_from_token)
     if company:
         return jsonify(company), 200
-    return jsonify({"error": "Company not found for this admin"}), 404
+    return jsonify({"error": "Company not found for this admin."}), 404
 
 
 @app.route('/companies/<int:company_id>/employees', methods=['POST'])
