@@ -18,21 +18,6 @@ export function DashboardHeader() {
   const [selectedEmployee, setSelectedEmployee] = useState("all")
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false)
 
-  // Obtener información del usuario
-  const [userName, setUserName] = useState<string>("")
-
-  useEffect(() => {
-    const session = localStorage.getItem("userSession")
-    if (session) {
-      try {
-        const sessionData = JSON.parse(session)
-        setUserName(sessionData.user || "Usuario")
-      } catch (e) {
-        console.error("Error al obtener datos de sesión:", e)
-      }
-    }
-  }, [])
-
   // Lista de empleados (en una implementación real, esto vendría de una API)
   const employees = [
     { id: "1", name: "Juan Pérez" },
@@ -50,8 +35,8 @@ export function DashboardHeader() {
   return (
     <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Bienvenido, {userName} | Métricas de llamadas de servicio al cliente</p>
+        <h1 className="text-2xl font-bold tracking-tight">Nombre de la empresa</h1>
+        <p className="text-muted-foreground">Métricas de llamadas de servicio al cliente</p>
       </div>
       <div className="flex flex-col space-y-2 md:flex-row md:space-x-2 md:space-y-0">
         <Popover open={employeeSearchOpen} onOpenChange={setEmployeeSearchOpen}>
