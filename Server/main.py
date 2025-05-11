@@ -310,7 +310,7 @@ async def api_add_company():
 async def api_get_my_company_details():
     admin_username_from_token = g.current_user.get('sub')
 
-    if not admin_username_from_token: # Should be caught by token_required logic if 'sub' is missing
+    if not admin_username_from_token:  # Should be caught by token_required logic if 'sub' is missing
         app.logger.error("Admin username ('sub') not found in token despite decorators.")
         return jsonify({"error": "Critical: Admin username not found in token payload."}), 500
 
@@ -364,12 +364,12 @@ async def api_update_employee(employee_id: int):
     if not data or not all(field in data for field in required_fields):
         return jsonify({"error": "Missing required fields for employee update"}), 400
 
-    username   = data['username']
-    new_password = data.get('password')       # ← optional
+    username = data['username']
+    new_password = data.get('password')  # ← optional
     first_name = data['first_name']
-    last_name  = data['last_name']
-    gender     = data.get('gender')
-    birthdate  = data.get('birthdate')
+    last_name = data['last_name']
+    gender = data.get('gender')
+    birthdate = data.get('birthdate')
 
     if gender and gender not in ('M', 'F'):
         return jsonify({"error": "Invalid gender. Must be 'M' or 'F'."}), 400
@@ -385,7 +385,7 @@ async def api_update_employee(employee_id: int):
             db_service.update_employee,
             employee_id,
             username,
-            new_password,    # can be None
+            new_password,  # can be None
             first_name,
             last_name,
             gender,
@@ -396,7 +396,6 @@ async def api_update_employee(employee_id: int):
     except ValueError as e:
         # Employee not found, etc.
         return jsonify({"error": str(e)}), 404
-
 
 
 @app.route('/employees/<int:employee_id>', methods=['DELETE'])
