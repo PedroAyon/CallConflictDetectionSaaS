@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api';
 import { LoginRequest, UserPayload, ApiErrorResponse } from '../api/apiTypes';
-import { isLoggedIn as checkCookieLoggedIn } from '../utils/cookieUtils'; // Renamed for clarity
+import { isLoggedIn as checkCookieLoggedIn } from '../utils/cookieUtils';
 
 interface AuthState {
     isLoggedIn: boolean;
