@@ -95,7 +95,7 @@ export interface CallRecord {
     call_timestamp: string; // ISO 8601 string
     call_duration: number;
     transcription: string | null;
-    audio_file_path: string;
+    audio_filename: string;
     conflict_value: number | null;
     employee_username?: string;
     employee_first_name?: string;

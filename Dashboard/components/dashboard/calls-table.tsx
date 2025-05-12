@@ -36,7 +36,7 @@ interface CallsTableProps {
 }
 
 export function CallsTable({ callRecords }: CallsTableProps) {
-  const { getCallRecording } = useDashboardData() // ✅ hook used here
+  const { getCallRecording } = useDashboardData()
 
   const [currentAudio, setCurrentAudio] = useState<{
     element: HTMLAudioElement
@@ -126,7 +126,8 @@ export function CallsTable({ callRecords }: CallsTableProps) {
     return <div>No hay llamadas registradas</div>
   }
 
-
+  console.log("Call records dataaaaaaaaaa:", callRecords);
+  
 
   return (
     <>
@@ -180,7 +181,7 @@ export function CallsTable({ callRecords }: CallsTableProps) {
                 </TableCell>
                 <TableCell>
                   {currentAudio?.filename ===
-                  record.audio_file_path ? (
+                  record.audio_filename ? (
                     <div className="flex flex-col gap-2 w-[200px]">
                       <div className="flex items-center gap-2">
                         <Button
@@ -203,7 +204,7 @@ export function CallsTable({ callRecords }: CallsTableProps) {
                           variant="ghost"
                           size="icon"
                           onClick={() =>
-                            handlePlayAudio(record.audio_file_path)
+                            handlePlayAudio(record.audio_filename)
                           }
                         >
                           {currentAudio.element.paused ? (
@@ -247,7 +248,7 @@ export function CallsTable({ callRecords }: CallsTableProps) {
                         variant="ghost"
                         size="icon"
                         onClick={() =>
-                          handlePlayAudio(record.audio_file_path)
+                          handlePlayAudio(record.audio_filename)
                         }
                       >
                         <Play className="h-4 w-4" />
