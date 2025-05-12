@@ -39,9 +39,7 @@ sentencepiece==0.2.0
 sympy==1.13.3
 tokenizers==0.21.1
 tomli==2.2.1
-torch==2.7.0+cpu
-torchaudio==2.7.0+cpu
-torchvision==0.22.0+cpu
+
 tqdm==4.67.1
 transformers==4.51.3
 typing_extensions==4.13.2

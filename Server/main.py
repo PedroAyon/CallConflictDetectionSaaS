@@ -1,7 +1,9 @@
 import asyncio
 import ntpath
 import os
+import queue
 import sqlite3
+import threading
 import uuid
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -50,6 +52,35 @@ else:
 
 conflict_analysis_service = ConflictDetector()
 
+# --- Background queue and worker thread ---
+audio_queue = queue.Queue()
+
+def audio_worker():
+    """Continuously process queued audio files for transcription and conflict detection."""
+    while True:
+        audio_path = audio_queue.get()
+        try:
+            # Transcribe
+            if speech_recognition_service:
+                raw_text, error_code = speech_recognition_service.speech_to_text_from_file_once(audio_path)
+                transcription_text = raw_text or ""
+            else:
+                transcription_text = None
+
+            # Conflict detection
+            conflict_value = None
+            if transcription_text is not None:
+                conflict_value = conflict_analysis_service.detect_conflict(transcription_text)
+
+            # Update database record
+            db_service.update_call_analysis(audio_path, transcription_text, conflict_value)
+
+        except Exception as e:
+            app.logger.error(f"Error processing audio {audio_path}: {e}")
+        finally:
+            audio_queue.task_done()
+
+threading.Thread(target=audio_worker, daemon=True).start()
 
 def is_allowed_audio_file(filename):
     return '.' in filename and \
@@ -475,49 +506,25 @@ async def api_add_call_record():
         app.logger.error(f"Failed to calculate audio duration: {e}")
         return jsonify({"error": "Could not calculate audio duration"}), 500
 
-    # 7) Transcribe (if configured)
-    transcription_text = None
-    if speech_recognition_service:
-        try:
-            raw_text, error_code = await run_blocking_io(
-                speech_recognition_service.speech_to_text_from_file_once,
-                path_for_transcription
-            )
-            transcription_text = raw_text
-            if error_code:
-                app.logger.warning(f"Speech recognition issue: {error_code}")
-        except Exception as e:
-            app.logger.error(f"Speech-to-text service error: {e}")
-
-    # 8) Conflict detection
-    conflict_value = None
-    if transcription_text is not None:
-        try:
-            conflict_value = await run_blocking_io(
-                conflict_analysis_service.detect_conflict,
-                transcription_text
-            )
-        except Exception as e:
-            app.logger.error(f"Conflict detection error: {e}")
-
-    # 9) Persist to database
+    # 7) Persist initial record without transcription/conflict
     await run_blocking_io(
         db_service.add_call_record,
         employee_id,
         call_timestamp_str,
         call_duration,
-        transcription_text,
+        None,
         final_audio_path,
-        conflict_value
+        None
     )
 
-    # 10) Return result
+    # 8) Enqueue for background processing
+    audio_queue.put(final_audio_path)
+
+    # 9) Return result
     return jsonify({
-        "message": "Call record added successfully",
+        "message": "Call record added successfully; transcription pending.",
         "audio_file_path": final_audio_path,
-        "call_duration_seconds": call_duration,
-        "transcription": transcription_text,
-        "conflict_detected": conflict_value
+        "call_duration_seconds": call_duration
     }), 201
 
 

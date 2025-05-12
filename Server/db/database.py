@@ -279,6 +279,13 @@ class Database:
                 (employee_id, timestamp, duration, transcription, audio_path, conflict)
             )
 
+    def update_call_analysis(self, audio_file_path: str, transcription: str, conflict: bool):
+        with self._get_connection() as conn:
+            conn.execute(
+                "UPDATE call_records SET transcription = ?, conflict_detected = ? WHERE audio_file_path = ?",
+                (transcription, conflict, audio_file_path)
+            )
+
     def get_call_records(
             self,
             company_id: int,
