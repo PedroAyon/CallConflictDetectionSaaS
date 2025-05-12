@@ -1,5 +1,5 @@
 import pytest
-from conflict_detection import ConflictDetector
+from tools.conflict_detection import ConflictDetector
 
 @pytest.fixture(scope="module")
 def detector():

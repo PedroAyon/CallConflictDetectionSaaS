@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from utils.audio_utils import convert_m4a_to_wav
+from tools.audio_utils import convert_m4a_to_wav
 
 
 def test_convert_m4a_to_wav_success(tmp_path):
@@ -41,6 +41,6 @@ def test_convert_m4a_to_wav_raises_other_exception(tmp_path):
     input_path.write_text("bad data")
 
     from unittest import mock
-    with mock.patch("utils.audio_utils.AudioSegment.from_file", side_effect=ValueError("Corrupted")):
+    with mock.patch("tools.audio_utils.AudioSegment.from_file", side_effect=ValueError("Corrupted")):
         with pytest.raises(Exception, match="An error occurred during conversion: Corrupted"):
             convert_m4a_to_wav(str(input_path))

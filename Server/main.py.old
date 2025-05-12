@@ -14,10 +14,10 @@ from flask import Flask, request, jsonify, send_from_directory, g
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-from conflict_detection import ConflictDetector
+from tools.conflict_detection import ConflictDetector
 from db.database import Database
-from utils.audio_utils import convert_m4a_to_wav
-from utils.speech_to_text import SpeechToTextService
+from tools.audio_utils import convert_m4a_to_wav
+from tools.speech_to_text import SpeechToTextService
 
 load_dotenv()
 

@@ -2,7 +2,7 @@ import os
 import pytest
 from pathlib import Path
 from dotenv import load_dotenv
-from utils.speech_to_text import SpeechToTextService
+from tools.speech_to_text import SpeechToTextService
 
 # Load environment variables from .env at the project root
 load_dotenv()
