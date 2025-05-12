@@ -13,10 +13,12 @@ import { Badge } from "@/components/ui/badge"
 
 export function CallsTable() {
   const { callRecords, isLoading, error, fetchCallRecords, getCallRecording, fetchCompanyByAdmin } = useDashboardData()
-  const [playingAudio, setPlayingAudio] = useState<string | null>(null)
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
+  const [currentAudio, setCurrentAudio] = useState<{
+    element: HTMLAudioElement;
+    filename: string;
+    currentTime: number;
+    duration: number;
+  } | null>(null)
   const [selectedCall, setSelectedCall] = useState<any | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
@@ -39,49 +41,24 @@ export function CallsTable() {
     fetchData()
   }, [fetchCallRecords, fetchCompanyByAdmin])
 
-  useEffect(() => {
-    if (audioElement) {
-      const updateTime = () => {
-        setCurrentTime(audioElement.currentTime)
-      }
-      const updateDuration = () => {
-        setDuration(audioElement.duration)
-      }
-      
-      audioElement.addEventListener('timeupdate', updateTime)
-      audioElement.addEventListener('loadedmetadata', updateDuration)
-      
-      return () => {
-        audioElement.removeEventListener('timeupdate', updateTime)
-        audioElement.removeEventListener('loadedmetadata', updateDuration)
-      }
-    }
-  }, [audioElement])
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60)
-    const seconds = Math.floor(time % 60)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-  }
-
   const handlePlayAudio = async (filename: string) => {
     try {
-      if (playingAudio === filename) {
-        // Stop playing
-        audioElement?.pause()
-        setPlayingAudio(null)
-        setAudioElement(null)
-        setCurrentTime(0)
-        setDuration(0)
+      // If we're trying to play/pause the current audio
+      if (currentAudio?.filename === filename) {
+        if (currentAudio.element.paused) {
+          // Resume playback
+          await currentAudio.element.play()
+        } else {
+          // Pause playback
+          currentAudio.element.pause()
+        }
         return
       }
 
-      // Stop any currently playing audio
-      if (audioElement) {
-        audioElement.pause()
-        setAudioElement(null)
-        setCurrentTime(0)
-        setDuration(0)
+      // If we're switching to a different audio
+      if (currentAudio) {
+        currentAudio.element.pause()
+        setCurrentAudio(null)
       }
 
       // Get the audio file
@@ -89,33 +66,61 @@ export function CallsTable() {
       const audioUrl = URL.createObjectURL(audioBlob)
       const audio = new Audio(audioUrl)
       
+      // Set up audio event listeners
       audio.onended = () => {
-        setPlayingAudio(null)
-        setAudioElement(null)
-        setCurrentTime(0)
-        setDuration(0)
         URL.revokeObjectURL(audioUrl)
+        setCurrentAudio(null)
       }
 
-      setAudioElement(audio)
-      setPlayingAudio(filename)
-      audio.play()
+      audio.ontimeupdate = () => {
+        setCurrentAudio(prev => prev ? {
+          ...prev,
+          currentTime: audio.currentTime
+        } : null)
+      }
+
+      audio.onloadedmetadata = () => {
+        setCurrentAudio({
+          element: audio,
+          filename,
+          currentTime: 0,
+          duration: audio.duration
+        })
+      }
+
+      // Start playing
+      await audio.play()
     } catch (error) {
       console.error("Error playing audio:", error)
     }
   }
 
   const handleSeek = (value: number[]) => {
-    if (audioElement) {
-      audioElement.currentTime = value[0]
-      setCurrentTime(value[0])
+    if (currentAudio) {
+      const newTime = value[0]
+      currentAudio.element.currentTime = newTime
+      setCurrentAudio(prev => prev ? {
+        ...prev,
+        currentTime: newTime
+      } : null)
     }
   }
 
   const handleSkip = (seconds: number) => {
-    if (audioElement) {
-      audioElement.currentTime = Math.max(0, Math.min(audioElement.duration, audioElement.currentTime + seconds))
+    if (currentAudio) {
+      const newTime = Math.max(0, Math.min(currentAudio.duration, currentAudio.currentTime + seconds))
+      currentAudio.element.currentTime = newTime
+      setCurrentAudio(prev => prev ? {
+        ...prev,
+        currentTime: newTime
+      } : null)
     }
+  }
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60)
+    const seconds = Math.floor(time % 60)
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
   const handleViewTranscript = (record: any) => {
@@ -152,7 +157,7 @@ export function CallsTable() {
           </TableHeader>
           <TableBody>
             {callRecords.map((record) => (
-              <TableRow key={record.employee_username}>
+              <TableRow key={record.call_id}>
                 <TableCell>
                   {record.employee_first_name} {record.employee_last_name}
                 </TableCell>
@@ -172,7 +177,7 @@ export function CallsTable() {
                   )}
                 </TableCell>
                 <TableCell>
-                  {playingAudio === record.audio_file_path ? (
+                  {currentAudio?.filename === record.audio_file_path ? (
                     <div className="flex flex-col gap-2 w-[200px]">
                       <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" onClick={() => handleViewTranscript(record)}>
@@ -191,7 +196,11 @@ export function CallsTable() {
                           size="icon"
                           onClick={() => handlePlayAudio(record.audio_file_path)}
                         >
-                          <Pause className="h-4 w-4" />
+                          {currentAudio.element.paused ? (
+                            <Play className="h-4 w-4" />
+                          ) : (
+                            <Pause className="h-4 w-4" />
+                          )}
                         </Button>
                         <Button
                           variant="ghost"
@@ -200,13 +209,13 @@ export function CallsTable() {
                         >
                           <SkipForward className="h-4 w-4" />
                         </Button>
-                        <span className="text-sm text-muted-foreground">
-                          {formatTime(currentTime)} / {formatTime(duration)}
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatTime(currentAudio.currentTime)} / {formatTime(currentAudio.duration)}
                         </span>
                       </div>
                       <Slider
-                        value={[currentTime]}
-                        max={duration}
+                        value={[currentAudio.currentTime]}
+                        max={currentAudio.duration}
                         step={1}
                         onValueChange={handleSeek}
                         className="w-full"
