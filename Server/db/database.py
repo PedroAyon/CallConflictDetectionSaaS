@@ -287,7 +287,17 @@ class Database:
             employee_id_filter: Optional[int] = None
     ) -> List[Dict]:
         query = """
-            SELECT cr.*
+            SELECT 
+                cr.call_id,
+                cr.employee_id,
+                cr.call_timestamp,
+                cr.call_duration,
+                cr.transcription,
+                cr.audio_file_path,
+                cr.conflict_detected AS conflict_value,
+                e.user_username AS employee_username, 
+                e.first_name AS employee_first_name, 
+                e.last_name AS employee_last_name
             FROM call_records cr
             JOIN employees e ON cr.employee_id = e.employee_id
             WHERE e.company_id = ? AND cr.call_timestamp BETWEEN ? AND ?
@@ -318,7 +328,7 @@ class Database:
         total = len(records)
         if total == 0:
             return 0.0
-        conflicts = sum(1 for r in records if r.get('conflict_detected') in (1, True))
+        conflicts = sum(1 for r in records if r.get('conflict_value') in (1, True))
         return (conflicts / total) * 100.0
 
     def get_user_last_updated(self, username: str) -> Optional[datetime]:
