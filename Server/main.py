@@ -1,4 +1,5 @@
 import asyncio
+import ntpath
 import os
 import sqlite3
 import uuid
@@ -511,6 +512,8 @@ async def api_get_call_records(company_id: int):
         db_service.get_call_records,
         company_id, start_time_str, end_time_str, employee_id_filter
     )
+    for record in records:
+        record['audio_file_path'] = ntpath.basename(record['audio_file_path']);
     return jsonify(records), 200
 
 
@@ -559,7 +562,7 @@ async def api_get_call_record_stats(company_id: int):
 @token_required
 @admin_only
 async def serve_recording(filename: str):
-    if '..' in filename or filename.startswith('/'):
+    if '..' in filename or '/' in filename:
         return jsonify({"error": "Invalid filename."}), 400
     try:
         return await asyncio.to_thread(send_from_directory, RECORDINGS_DIR, filename, as_attachment=False)
