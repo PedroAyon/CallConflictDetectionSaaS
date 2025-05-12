@@ -81,7 +81,7 @@ export function EmployeeManagement() {
       const apiEmployees = await api.employees.getEmployeesByCompany(company.company_id)
       setEmployees(apiEmployees)
       
-      setIsAddDialogOpen(false)
+    setIsAddDialogOpen(false)
       toast({
         title: "Éxito",
         description: "Empleado agregado correctamente",
@@ -107,8 +107,8 @@ export function EmployeeManagement() {
       const apiEmployees = await api.employees.getEmployeesByCompany(company.company_id)
       setEmployees(apiEmployees)
       
-      setIsEditDialogOpen(false)
-      setSelectedEmployee(null)
+    setIsEditDialogOpen(false)
+    setSelectedEmployee(null)
       toast({
         title: "Éxito",
         description: "Empleado actualizado correctamente",
@@ -133,8 +133,8 @@ export function EmployeeManagement() {
         const apiEmployees = await api.employees.getEmployeesByCompany(company.company_id)
         setEmployees(apiEmployees)
         
-        setIsDeleteDialogOpen(false)
-        setSelectedEmployee(null)
+      setIsDeleteDialogOpen(false)
+      setSelectedEmployee(null)
         toast({
           title: "Éxito",
           description: "Empleado eliminado correctamente",
@@ -168,10 +168,10 @@ export function EmployeeManagement() {
               className="pl-8"
             />
           </div>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Agregar Empleado
-          </Button>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Agregar Empleado
+        </Button>
         </div>
       </div>
 

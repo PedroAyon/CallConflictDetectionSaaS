@@ -93,7 +93,7 @@ export function CallsTable() {
         </TableHeader>
         <TableBody>
           {callRecords.map((record) => (
-            <TableRow key={record.record_id}>
+            <TableRow key={record.employee_username}>
               <TableCell>
                 {record.employee_first_name} {record.employee_last_name}
               </TableCell>
@@ -101,7 +101,7 @@ export function CallsTable() {
                 {format(new Date(record.call_timestamp), "dd/MM/yyyy HH:mm:ss", { locale: es })}
               </TableCell>
               <TableCell>
-                {Math.floor(record.call_duration_seconds / 60)}:{(record.call_duration_seconds % 60).toString().padStart(2, '0')}
+                {Math.floor(record.call_duration / 60)}:{(record.call_duration % 60).toString().padStart(2, '0')}
               </TableCell>
               <TableCell>
                 {record.conflict_value !== null ? `${(record.conflict_value * 100).toFixed(1)}%` : "N/A"}

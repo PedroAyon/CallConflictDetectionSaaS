@@ -90,14 +90,13 @@ export type EmployeeListResponse = Employee[];
 
 // --- Call Record Types ---
 export interface CallRecord {
-    record_id: number;
+    call_id: number;
     employee_id: number;
     call_timestamp: string; // ISO 8601 string
-    call_duration_seconds: number;
-    transcription_text: string | null;
+    call_duration: number;
+    transcription: string | null;
     audio_file_path: string;
     conflict_value: number | null;
-    created_at?: string; // ISO 8601 string
     employee_username?: string;
     employee_first_name?: string;
     employee_last_name?: string;
