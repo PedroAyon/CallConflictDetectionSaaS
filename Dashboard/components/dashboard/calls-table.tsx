@@ -124,10 +124,7 @@ export function CallsTable({ callRecords }: CallsTableProps) {
 
   if (!callRecords.length) {
     return <div>No hay llamadas registradas</div>
-  }
-
-  console.log("Call records dataaaaaaaaaa:", callRecords);
-  
+  }  
 
   return (
     <>

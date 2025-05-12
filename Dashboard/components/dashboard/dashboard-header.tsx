@@ -36,6 +36,10 @@ interface DashboardHeaderProps {
   employees: Employee[]
   selectedEmployeeId: number | null
   onEmployeeChange: (employeeId: number | null) => void
+  timeFilter: string
+  onTimeFilterChange: (value: string) => void
+  dateRange?: DateRange
+  onDateRangeChange: (range?: DateRange) => void
 }
 
 export function DashboardHeader({
@@ -44,10 +48,13 @@ export function DashboardHeader({
   employees,
   selectedEmployeeId,
   onEmployeeChange,
+  timeFilter,
+  onTimeFilterChange,
+  dateRange,
+  onDateRangeChange,
 }: DashboardHeaderProps) {
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false)
-  const [timeFilter, setTimeFilter] = useState("today")
-  const [dateRange, setDateRange] = useState<DateRange | undefined>()
+  const [calendarOpen, setCalendarOpen] = useState(false)
 
   const selectedName =
     selectedEmployeeId == null
@@ -56,18 +63,15 @@ export function DashboardHeader({
           const emp = employees.find(
             (e) => e.employee_id === selectedEmployeeId
           )
-          return emp ? `${emp.first_name} ${emp.last_name}` : "Seleccionar empleado"
+          return emp
+            ? `${emp.first_name} ${emp.last_name}`
+            : "Seleccionar empleado"
         })()
 
-  const formatDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), "d 'de' MMMM 'de' yyyy", {
-        locale: es,
-      })
-    } catch {
-      return dateString
-    }
-  }
+  const formatDateDisplay = (dateString: string) =>
+    format(new Date(dateString), "d 'de' MMMM 'de' yyyy", {
+      locale: es,
+    })
 
   return (
     <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
@@ -75,7 +79,7 @@ export function DashboardHeader({
         <h1 className="text-2xl font-bold tracking-tight">{companyName}</h1>
         {subscriptionExpiration && (
           <p className="text-muted-foreground mt-1">
-            Suscripción válida hasta: {formatDate(subscriptionExpiration)}
+            Suscripción válida hasta: {formatDateDisplay(subscriptionExpiration)}
           </p>
         )}
         <p className="text-muted-foreground font-semibold mt-1">
@@ -150,8 +154,16 @@ export function DashboardHeader({
           </PopoverContent>
         </Popover>
 
-        {/* Time filter (unchanged) */}
-        <Select value={timeFilter} onValueChange={setTimeFilter}>
+        {/* Time filter */}
+        <Select
+          value={timeFilter}
+          onValueChange={(val) => {
+            onTimeFilterChange(val)
+            if (val !== "custom") {
+              onDateRangeChange(undefined)
+            }
+          }}
+        >
           <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="Periodo de tiempo" />
           </SelectTrigger>
@@ -165,8 +177,9 @@ export function DashboardHeader({
           </SelectContent>
         </Select>
 
+        {/* Custom date range */}
         {timeFilter === "custom" && (
-          <Popover>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
                 type="button"
@@ -194,7 +207,7 @@ export function DashboardHeader({
                 mode="range"
                 defaultMonth={dateRange?.from}
                 selected={dateRange}
-                onSelect={setDateRange}
+                onSelect={onDateRangeChange}
                 numberOfMonths={2}
                 locale={es}
               />
