@@ -410,32 +410,49 @@ async def api_delete_employee(employee_id: int):
         return jsonify({"error": str(e)}), 404
 
 
-@app.route('/employees/<int:employee_id>/call_records', methods=['POST'])
-@check_self_employee(employee_id_arg_name='employee_id')
-async def api_add_call_record(employee_id: int):
+@app.route('/call_records', methods=['POST'])
+@token_required
+@employee_only
+async def api_add_call_record():
+    """
+    Adds a call record for the currently authenticated employee.
+    Expects:
+      - multipart form-data with 'audio_file'
+      - form field 'call_timestamp' in ISO 8601 format
+    """
+    # 1) Determine employee ID from the JWT payload
+    employee_id = g.current_user.get('employee_id')
+    if not employee_id:
+        return jsonify({"error": "Could not determine employee identity"}), 401
+
+    # 2) Validate file upload
     if 'audio_file' not in request.files:
         return jsonify({"error": "No audio file part in the request"}), 400
     audio_file = request.files['audio_file']
     if audio_file.filename == '':
         return jsonify({"error": "No selected audio file"}), 400
-    if not audio_file or not is_allowed_audio_file(audio_file.filename):
+    if not is_allowed_audio_file(audio_file.filename):
         return jsonify({"error": "Invalid audio file type"}), 400
 
+    # 3) Validate call timestamp
     call_timestamp_str = request.form.get('call_timestamp')
     if not call_timestamp_str:
         return jsonify({"error": "Missing call_timestamp"}), 400
     try:
-        datetime.fromisoformat(call_timestamp_str.replace("Z", "+00:00"))
+        # Allow "Z" or offset
+        call_timestamp = datetime.fromisoformat(call_timestamp_str.replace("Z", "+00:00"))
     except ValueError:
-        return jsonify({"error": "Invalid call_timestamp format. Use ISO 8601 format."}), 400
+        return jsonify({"error": "Invalid call_timestamp format. Use ISO 8601."}), 400
 
+    # 4) Save uploaded file
     original_filename = secure_filename(audio_file.filename)
     file_ext = original_filename.rsplit('.', 1)[1].lower()
-    unique_file_id = uuid.uuid4().hex
-    base_name = f"{unique_file_id}_{original_filename.rsplit('.', 1)[0]}"
+    unique_id = uuid.uuid4().hex
+    base_name = f"{unique_id}_{original_filename.rsplit('.', 1)[0]}"
     saved_path = os.path.join(RECORDINGS_DIR, f"{base_name}.{file_ext}")
     await run_blocking_io(audio_file.save, saved_path)
 
+    # 5) If M4A, convert to WAV
     path_for_transcription = saved_path
     final_audio_path = saved_path
     if file_ext == 'm4a':
@@ -448,6 +465,7 @@ async def api_add_call_record(employee_id: int):
             app.logger.error(f"Audio conversion failed: {e}")
             return jsonify({"error": f"Audio conversion failed: {e}"}), 500
 
+    # 6) Compute duration
     try:
         from pydub import AudioSegment
         audio_segment = await run_blocking_io(AudioSegment.from_file, final_audio_path)
@@ -457,6 +475,7 @@ async def api_add_call_record(employee_id: int):
         app.logger.error(f"Failed to calculate audio duration: {e}")
         return jsonify({"error": "Could not calculate audio duration"}), 500
 
+    # 7) Transcribe (if configured)
     transcription_text = None
     if speech_recognition_service:
         try:
@@ -465,28 +484,42 @@ async def api_add_call_record(employee_id: int):
                 path_for_transcription
             )
             transcription_text = raw_text
-            if error_code: app.logger.warning(f"Speech recognition issue: {error_code}")
-        except Exception:
-            app.logger.error("Speech-to-text service error")
+            if error_code:
+                app.logger.warning(f"Speech recognition issue: {error_code}")
+        except Exception as e:
+            app.logger.error(f"Speech-to-text service error: {e}")
 
+    # 8) Conflict detection
     conflict_value = None
-    if transcription_text:
+    if transcription_text is not None:
         try:
-            conflict_value = await run_blocking_io(conflict_analysis_service.detect_conflict, transcription_text)
-        except Exception:
-            app.logger.error("Conflict detection error")
-    if transcription_text is None: conflict_value = None
+            conflict_value = await run_blocking_io(
+                conflict_analysis_service.detect_conflict,
+                transcription_text
+            )
+        except Exception as e:
+            app.logger.error(f"Conflict detection error: {e}")
 
+    # 9) Persist to database
     await run_blocking_io(
         db_service.add_call_record,
-        employee_id, call_timestamp_str, call_duration,
-        transcription_text, final_audio_path, conflict_value
+        employee_id,
+        call_timestamp_str,
+        call_duration,
+        transcription_text,
+        final_audio_path,
+        conflict_value
     )
+
+    # 10) Return result
     return jsonify({
-        "message": "Call record added successfully", "audio_file_path": final_audio_path,
-        "call_duration_seconds": call_duration, "transcription": transcription_text,
+        "message": "Call record added successfully",
+        "audio_file_path": final_audio_path,
+        "call_duration_seconds": call_duration,
+        "transcription": transcription_text,
         "conflict_detected": conflict_value
     }), 201
+
 
 
 @app.route('/companies/<int:company_id>/call_records', methods=['GET'])
