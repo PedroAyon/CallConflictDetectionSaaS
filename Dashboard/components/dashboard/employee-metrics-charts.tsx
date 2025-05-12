@@ -123,7 +123,7 @@ export function EmployeeMetricsCharts() {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={sortedMetrics}>
               <XAxis dataKey="name" tickFormatter={(value) => value.split(" ")[0]} />
-              <YAxis />
+              <YAxis domain={[0, 100]} />
               <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
               <Bar dataKey="percentage" fill="#dc2626" radius={[4, 4, 0, 0]} />
             </BarChart>
