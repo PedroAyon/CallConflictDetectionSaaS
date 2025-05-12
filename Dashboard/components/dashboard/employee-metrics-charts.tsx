@@ -82,7 +82,7 @@ export function EmployeeMetricsCharts() {
         <CardContent className="px-2">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={sortedMetrics}>
-              <XAxis dataKey="name" tickFormatter={(value) => value.split(" ")[0]} />
+              <XAxis dataKey="name" tick={false} />
               <YAxis />
               <Tooltip />
               <Bar dataKey="calls" fill="#2563eb" radius={[4, 4, 0, 0]} />
@@ -99,7 +99,7 @@ export function EmployeeMetricsCharts() {
         <CardContent className="px-2">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={sortedMetrics}>
-              <XAxis dataKey="name" tickFormatter={(value) => value.split(" ")[0]} />
+              <XAxis dataKey="name" tick={false} />
               <YAxis />
               <Tooltip formatter={(value: number) => {
                 const hours = Math.floor(value);
@@ -122,7 +122,7 @@ export function EmployeeMetricsCharts() {
         <CardContent className="px-2">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={sortedMetrics}>
-              <XAxis dataKey="name" tickFormatter={(value) => value.split(" ")[0]} />
+              <XAxis dataKey="name" tick={false} />
               <YAxis domain={[0, 100]} />
               <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
               <Bar dataKey="percentage" fill="#dc2626" radius={[4, 4, 0, 0]} />
