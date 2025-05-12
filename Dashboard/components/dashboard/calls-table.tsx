@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Play, Pause, SkipBack, SkipForward } from "lucide-react"
+import { Play, Pause, SkipBack, SkipForward, FileText } from "lucide-react"
 import { useDashboardData } from "@/lib/hooks/useDashboardData"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Slider } from "@/components/ui/slider"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 
 export function CallsTable() {
   const { callRecords, isLoading, error, fetchCallRecords, getCallRecording, fetchCompanyByAdmin } = useDashboardData()
@@ -15,6 +17,8 @@ export function CallsTable() {
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [selectedCall, setSelectedCall] = useState<any | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -114,6 +118,13 @@ export function CallsTable() {
     }
   }
 
+  const handleViewTranscript = (record: any) => {
+    console.log("aaa");
+    console.log(record);
+    setSelectedCall(record)
+    setIsDialogOpen(true)
+  }
+
   if (isLoading) {
     return <div>Cargando llamadas...</div>
   }
@@ -127,83 +138,123 @@ export function CallsTable() {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Empleado</TableHead>
-            <TableHead>Fecha y Hora</TableHead>
-            <TableHead>Duración</TableHead>
-            <TableHead>Conflicto</TableHead>
-            <TableHead>Audio</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {callRecords.map((record) => (
-            <TableRow key={record.employee_username}>
-              <TableCell>
-                {record.employee_first_name} {record.employee_last_name}
-              </TableCell>
-              <TableCell>
-                {format(new Date(record.call_timestamp), "dd/MM/yyyy HH:mm:ss", { locale: es })}
-              </TableCell>
-              <TableCell>
-                {Math.floor(record.call_duration / 60)}:{(record.call_duration % 60).toString().padStart(2, '0')}
-              </TableCell>
-              <TableCell>
-                {record.conflict_value !== null ? `${(record.conflict_value * 100).toFixed(1)}%` : "N/A"}
-              </TableCell>
-              <TableCell>
-                {playingAudio === record.audio_file_path ? (
-                  <div className="flex flex-col gap-2 w-[200px]">
+    <>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Empleado</TableHead>
+              <TableHead>Fecha y Hora</TableHead>
+              <TableHead>Duración</TableHead>
+              <TableHead>Análisis</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {callRecords.map((record) => (
+              <TableRow key={record.employee_username}>
+                <TableCell>
+                  {record.employee_first_name} {record.employee_last_name}
+                </TableCell>
+                <TableCell>
+                  {format(new Date(record.call_timestamp), "dd/MM/yyyy HH:mm:ss", { locale: es })}
+                </TableCell>
+                <TableCell>
+                  {Math.floor(record.call_duration / 60)}:{(record.call_duration % 60).toString().padStart(2, '0')}
+                </TableCell>
+                <TableCell>
+                  {record.conflict_value !== null ? (
+                    <Badge variant={record.conflict_value > 0 ? "destructive" : "outline"}>
+                      {record.conflict_value > 0 ? "Conflicto" : "Normal"}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">N/A</Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {playingAudio === record.audio_file_path ? (
+                    <div className="flex flex-col gap-2 w-[200px]">
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" onClick={() => handleViewTranscript(record)}>
+                          <FileText className="h-4 w-4" />
+                          <span className="sr-only">Ver transcripción</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleSkip(-10)}
+                        >
+                          <SkipBack className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handlePlayAudio(record.audio_file_path)}
+                        >
+                          <Pause className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleSkip(10)}
+                        >
+                          <SkipForward className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm text-muted-foreground">
+                          {formatTime(currentTime)} / {formatTime(duration)}
+                        </span>
+                      </div>
+                      <Slider
+                        value={[currentTime]}
+                        max={duration}
+                        step={1}
+                        onValueChange={handleSeek}
+                        className="w-full"
+                      />
+                    </div>
+                  ) : (
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleSkip(-10)}
-                      >
-                        <SkipBack className="h-4 w-4" />
+                      <Button variant="outline" size="icon" onClick={() => handleViewTranscript(record)}>
+                        <FileText className="h-4 w-4" />
+                        <span className="sr-only">Ver transcripción</span>
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handlePlayAudio(record.audio_file_path)}
                       >
-                        <Pause className="h-4 w-4" />
+                        <Play className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleSkip(10)}
-                      >
-                        <SkipForward className="h-4 w-4" />
-                      </Button>
-                      <span className="text-sm text-muted-foreground">
-                        {formatTime(currentTime)} / {formatTime(duration)}
-                      </span>
                     </div>
-                    <Slider
-                      value={[currentTime]}
-                      max={duration}
-                      step={1}
-                      onValueChange={handleSeek}
-                      className="w-full"
-                    />
-                  </div>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handlePlayAudio(record.audio_file_path)}
-                  >
-                    <Play className="h-4 w-4" />
-                  </Button>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Transcripción de Llamada</DialogTitle>
+            <DialogDescription>
+              {selectedCall && (
+                <span>
+                  {selectedCall.employee_first_name} {selectedCall.employee_last_name} -{" "}
+                  {format(new Date(selectedCall.call_timestamp), "dd/MM/yyyy HH:mm:ss", { locale: es })} -{" "}
+                  Duración: {Math.floor(selectedCall.call_duration / 60)}:{(selectedCall.call_duration % 60).toString().padStart(2, '0')}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-96 overflow-y-auto rounded-md bg-muted p-4">
+            <pre className="whitespace-pre-wrap font-mono text-sm">
+              {selectedCall?.transcription || "No hay transcripción disponible"}
+            </pre>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
