@@ -5,21 +5,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CallsTable } from "@/components/dashboard/calls-table"
 import { EmployeeMetricsCharts } from "@/components/dashboard/employee-metrics-charts"
 import { format } from "date-fns"
-import { es } from "date-fns/locale"
 import { CallRecord, CallRecordStatsResponse, Employee } from "@/lib/api/apiTypes"
 
 interface DashboardMetricsProps {
   stats: CallRecordStatsResponse
   employees: Employee[]
   callRecords: CallRecord[]
-  // getCallRecording: (filename: string) => Promise<Blob>
 }
 
 export function DashboardMetrics({
   stats,
   employees,
   callRecords,
-  // getCallRecording,
 }: DashboardMetricsProps) {
   // Formatea segundos a HH:MM:SS
   const formatTotalTime = (seconds: number) => {
@@ -35,6 +32,7 @@ export function DashboardMetrics({
 
   return (
     <div className="space-y-6">
+      {/* Summary cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex justify-between pb-2">
@@ -43,9 +41,7 @@ export function DashboardMetrics({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.total_calls}
-            </div>
+            <div className="text-2xl font-bold">{stats.total_calls}</div>
           </CardContent>
         </Card>
         <Card>
@@ -74,24 +70,29 @@ export function DashboardMetrics({
         </Card>
       </div>
 
-      <Tabs defaultValue="charts">
-        <TabsList>
-          <TabsTrigger value="charts">Gráficas</TabsTrigger>
-          <TabsTrigger value="calls">Registro de Llamadas</TabsTrigger>
-        </TabsList>
-        <TabsContent value="charts" className="space-y-4">
-          <EmployeeMetricsCharts
-            employees={employees}
-            callRecords={callRecords}
-          />
-        </TabsContent>
-        <TabsContent value="calls">
-          <CallsTable
-            callRecords={callRecords}
-            // getCallRecording={getCallRecording}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* If more than one employee, show tabs with charts and table.
+          Otherwise, only show the calls table */}
+      {employees.length > 1 ? (
+        <Tabs defaultValue="charts">
+          <TabsList>
+            <TabsTrigger value="charts">Gráficas</TabsTrigger>
+            <TabsTrigger value="calls">Registro de Llamadas</TabsTrigger>
+          </TabsList>
+          <TabsContent value="charts" className="space-y-4">
+            <EmployeeMetricsCharts
+              employees={employees}
+              callRecords={callRecords}
+            />
+          </TabsContent>
+          <TabsContent value="calls">
+            <CallsTable callRecords={callRecords} />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <div>
+          <CallsTable callRecords={callRecords} />
+        </div>
+      )}
     </div>
   )
 }

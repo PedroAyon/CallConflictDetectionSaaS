@@ -205,35 +205,13 @@ async def api_get_call_record_stats(company_id: int):
         }
 
         if not records:
-            stats = {
-                "total_calls": 0,
-                "total_duration_seconds": 0,
-                "conflict_percentage": 0.0,
-                "average_duration_seconds": 0.0,
-                "calls_with_conflict": 0,
-                "calls_analyzed_for_conflict": 0,
-                "filters_applied": filters_applied
-            }
+            stats = {"total_calls": 0, "total_duration_seconds": 0, "conflict_percentage": 0.0,
+                     "filters_applied": filters_applied}
         else:
-            total_calls = len(records)
-            total_duration = sum(r['call_duration_seconds'] for r in records if r.get('call_duration_seconds') is not None)
-
-            # Adjust conflict logic based on how scores are stored (e.g., None, 0, >0)
-            conflicted_calls = [r for r in records if r.get('conflict_score') is not None and r['conflict_score'] > 0]
-            analyzed_calls = [r for r in records if r.get('conflict_score') is not None]
-            conflict_count = len(conflicted_calls)
-            analyzed_count = len(analyzed_calls)
-
-            conflict_percentage = (conflict_count / analyzed_count * 100) if analyzed_count > 0 else 0.0
-            average_duration = (total_duration / total_calls) if total_calls > 0 else 0.0
-
             stats = {
-                "total_calls": total_calls,
-                "total_duration_seconds": total_duration,
-                "conflict_percentage": round(conflict_percentage, 2),
-                "average_duration_seconds": round(average_duration, 2),
-                "calls_with_conflict": conflict_count,
-                "calls_analyzed_for_conflict": analyzed_count,
+                "total_calls": db_service.count_calls(records),
+                "total_duration_seconds": db_service.sum_call_durations(records),
+                "conflict_percentage": db_service.calculate_conflict_percentage(records),
                 "filters_applied": filters_applied
             }
         return jsonify(stats), 200

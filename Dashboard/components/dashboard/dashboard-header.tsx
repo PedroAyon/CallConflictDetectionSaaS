@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import {
   Select,
   SelectContent,
@@ -16,36 +15,49 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import {
-  CalendarIcon,
-  Check,
-  ChevronsUpDown,
-} from "lucide-react"
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command"
+import { Calendar } from "@/components/ui/calendar"
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import type { DateRange } from "react-day-picker"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
+import { Employee } from "@/lib/api/apiTypes"
 import { cn } from "@/lib/utils"
 
 interface DashboardHeaderProps {
   companyName: string
   subscriptionExpiration: string
+  employees: Employee[]
+  selectedEmployeeId: number | null
+  onEmployeeChange: (employeeId: number | null) => void
 }
 
 export function DashboardHeader({
   companyName,
   subscriptionExpiration,
+  employees,
+  selectedEmployeeId,
+  onEmployeeChange,
 }: DashboardHeaderProps) {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>()
-  const [timeFilter, setTimeFilter] = useState("today")
-  const [selectedEmployee, setSelectedEmployee] = useState("all")
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false)
+  const [timeFilter, setTimeFilter] = useState("today")
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
+
+  const selectedName =
+    selectedEmployeeId == null
+      ? "Todos los empleados"
+      : (() => {
+          const emp = employees.find(
+            (e) => e.employee_id === selectedEmployeeId
+          )
+          return emp ? `${emp.first_name} ${emp.last_name}` : "Seleccionar empleado"
+        })()
 
   const formatDate = (dateString: string) => {
     try {
@@ -57,102 +69,79 @@ export function DashboardHeader({
     }
   }
 
-  // Temporal: lista estática mientras se implementa el filtrado real
-  const employees = [
-    { id: "1", name: "Juan Pérez" },
-    { id: "2", name: "María López" },
-    { id: "3", name: "Carlos Rodríguez" },
-    { id: "4", name: "Ana Martínez" },
-    { id: "5", name: "Roberto Gómez" },
-    { id: "6", name: "Laura Sánchez" },
-    { id: "7", name: "Miguel Fernández" },
-    { id: "8", name: "Sofía Ramírez" },
-    { id: "9", name: "Javier Torres" },
-    { id: "10", name: "Carmen Díaz" },
-  ]
-
   return (
     <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {companyName}
-        </h1>
-        <p className="text-muted-foreground">
-          {subscriptionExpiration && (
-            <span className="block mt-1">
-              Suscripción válida hasta: {formatDate(subscriptionExpiration)}
-            </span>
-          )}
-          <b>Métricas de llamadas de servicio al cliente</b>
+        <h1 className="text-2xl font-bold tracking-tight">{companyName}</h1>
+        {subscriptionExpiration && (
+          <p className="text-muted-foreground mt-1">
+            Suscripción válida hasta: {formatDate(subscriptionExpiration)}
+          </p>
+        )}
+        <p className="text-muted-foreground font-semibold mt-1">
+          Métricas de llamadas de servicio al cliente
         </p>
       </div>
+
       <div className="flex flex-col space-y-2 md:flex-row md:space-x-2 md:space-y-0">
-        {/* Empleado */}
+        {/* Employee selector */}
         <Popover
           open={employeeSearchOpen}
           onOpenChange={setEmployeeSearchOpen}
         >
           <PopoverTrigger asChild>
             <Button
+              type="button"
               variant="outline"
               role="combobox"
               aria-expanded={employeeSearchOpen}
               className="w-full justify-between md:w-[220px]"
             >
-              {selectedEmployee === "all"
-                ? "Todos los empleados"
-                : employees.find(
-                    (e) => e.id === selectedEmployee
-                  )?.name ?? "Seleccionar empleado"}
+              {selectedName}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-full p-0 md:w-[220px]">
             <Command>
-              <CommandInput
-                placeholder="Buscar empleado..."
-                className="h-9"
-              />
+              <div className="p-2">
+                <CommandInput placeholder="Buscar empleado..." className="h-9" />
+              </div>
               <CommandList>
-                <CommandEmpty>
-                  No se encontraron empleados.
-                </CommandEmpty>
+                <CommandEmpty>No se encontraron empleados.</CommandEmpty>
                 <CommandGroup>
                   <CommandItem
                     value="all"
                     onSelect={() => {
-                      setSelectedEmployee("all")
+                      onEmployeeChange(null)
                       setEmployeeSearchOpen(false)
                     }}
                   >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        selectedEmployee === "all"
-                          ? "opacity-100"
-                          : "opacity-0"
+                        selectedEmployeeId == null ? "opacity-100" : "opacity-0"
                       )}
                     />
                     Todos los empleados
                   </CommandItem>
-                  {employees.map((employee) => (
+                  {employees.map((emp) => (
                     <CommandItem
-                      key={employee.id}
-                      value={employee.name}
+                      key={emp.employee_id}
+                      value={emp.employee_id.toString()}
                       onSelect={() => {
-                        setSelectedEmployee(employee.id)
+                        onEmployeeChange(emp.employee_id)
                         setEmployeeSearchOpen(false)
                       }}
                     >
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
-                          selectedEmployee === employee.id
+                          selectedEmployeeId === emp.employee_id
                             ? "opacity-100"
                             : "opacity-0"
                         )}
                       />
-                      {employee.name}
+                      {emp.first_name} {emp.last_name}
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -161,11 +150,8 @@ export function DashboardHeader({
           </PopoverContent>
         </Popover>
 
-        {/* Periodo */}
-        <Select
-          value={timeFilter}
-          onValueChange={setTimeFilter}
-        >
+        {/* Time filter (unchanged) */}
+        <Select value={timeFilter} onValueChange={setTimeFilter}>
           <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="Periodo de tiempo" />
           </SelectTrigger>
@@ -179,11 +165,11 @@ export function DashboardHeader({
           </SelectContent>
         </Select>
 
-        {/* Rango personalizado */}
         {timeFilter === "custom" && (
           <Popover>
             <PopoverTrigger asChild>
               <Button
+                type="button"
                 variant="outline"
                 className="w-full justify-start text-left font-normal md:w-[280px]"
               >
@@ -191,22 +177,11 @@ export function DashboardHeader({
                 {dateRange?.from ? (
                   dateRange.to ? (
                     <>
-                      {format(
-                        dateRange.from,
-                        "dd/MM/yyyy",
-                        { locale: es }
-                      )}{" "}
-                      -{" "}
-                      {format(
-                        dateRange.to,
-                        "dd/MM/yyyy",
-                        { locale: es }
-                      )}
+                      {format(dateRange.from, "dd/MM/yyyy", { locale: es })} -{" "}
+                      {format(dateRange.to, "dd/MM/yyyy", { locale: es })}
                     </>
                   ) : (
-                    format(dateRange.from, "dd/MM/yyyy", {
-                      locale: es,
-                    })
+                    format(dateRange.from, "dd/MM/yyyy", { locale: es })
                   )
                 ) : (
                   <span>Seleccionar fechas</span>
