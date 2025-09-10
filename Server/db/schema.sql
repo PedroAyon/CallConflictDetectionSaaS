@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS call_records (
     call_duration INTEGER NOT NULL CHECK(call_duration >= 0),
     transcription TEXT,
     audio_file_path TEXT NOT NULL UNIQUE,
-    conflict_detected2 BOOLEAN,
+    conflict_detected BOOLEAN,
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
         ON DELETE CASCADE ON UPDATE CASCADE,
     CHECK (
