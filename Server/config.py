@@ -30,6 +30,10 @@ class Config:
     HOST = os.getenv('HOST', '0.0.0.0')
     PORT = int(os.getenv('PORT', 5000))
 
+    # --- Gemini ---
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', None)
+    GEMINI_GENERATIVE_MODEL = os.getenv('GEMINI_GENERATIVE_MODEL', 'gemini-1.5-flash')
+
     # --- Ensure recordings directory exists ---
     os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
