@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS call_records (
         OR (transcription IS NOT NULL AND conflict_detected IN (0,1))
     )
 );
+
 CREATE TABLE IF NOT EXISTS daily_summary (
     daily_id INTEGER PRIMARY KEY AUTOINCREMENT,
     company_id INTEGER NOT NULL,

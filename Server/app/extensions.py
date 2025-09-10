@@ -27,4 +27,5 @@ conflict_analysis_service = ConflictDetector()
 
 genai.configure(api_key=config.GEMINI_API_KEY)
 gemini = genai.GenerativeModel('gemini-1.5-flash') 
+
 audio_queue = queue.Queue()
