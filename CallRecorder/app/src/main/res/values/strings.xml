@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">callrecorder2</string>
+        <string name="notification_title">Transferencia activa</string>
+        <string name="notification_text">Monitoreando grabaciones en CubeCallRecorder/All</string>
+        <string name="start_service">Iniciar servicio</string>
+        <string name="stop_service">Detener servicio</string>
+
+</resources>
