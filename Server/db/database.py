@@ -421,3 +421,24 @@ class Database:
             cursor = conn.cursor()
             cursor.execute(query, params)
             conn.commit()
+        
+
+    def get_company_id_by_emp_id(self, employee_id: int) -> Optional[int]:
+        query = """
+            SELECT 
+                c.company_id 
+            FROM 
+                companies c
+            JOIN 
+                employees e ON c.company_id = e.company_id
+            WHERE 
+                e.employee_id = ?;
+        """
+        params = (employee_id,)
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            row = cursor.fetchone()
+
+        return row[0] if row else None

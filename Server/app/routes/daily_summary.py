@@ -30,17 +30,24 @@ def format_transcriptions_for_summary(records: List[Dict]) -> str:
 async def api_add_summary():
     """
     adds a daily summary for the day specified
-    expects JSON: {"company_id": <id>, "day": "YYYY-MM-DD" (optional)}
+    expects JSON: {"employee_id": <id>, "day": "YYYY-MM-DD" (optional)}
     """
     data = request.get_json()
-    if not data or 'company_id' not in data:
-        return jsonify({"error": "'company_id' is required"}), 400
+    if not data or 'employee_id' not in data:
+        return jsonify({"error": "'employee_id' is required"}), 400
 
-    company_id = data['company_id']
-
+    employee_id = data['employee_id']
     summary_day = data.get('day') or date.today().strftime('%Y-%m-%d')
 
     try:
+        company_id = await run_blocking_io(
+            db_service.get_company_id_by_emp_id,
+            employee_id=employee_id
+        )
+
+        if company_id is None:
+            return jsonify({"error": f"No company found for employee with ID {employee_id}"}), 404
+
         start_of_day = f"{summary_day} 00:00:00"
         end_of_day = f"{summary_day} 23:59:59"
 
@@ -52,19 +59,24 @@ async def api_add_summary():
 
         summary_text = summarize_with_gemini(formatted_text)
 
-        await run_blocking_io(
+        inserted_id = await run_blocking_io(
             db_service.add_daily_summary,
             company_id,
             summary_day,
             summary_text
         )
 
-        return jsonify({
-            "summary": summary_text
-        }), 201
+        if inserted_id:
+            return jsonify({
+                "message": f"Summary for {summary_day} created.",
+                "daily_id": inserted_id,
+                "summary": summary_text
+            }), 201
+        else:
+            return jsonify({"error": f"Summary for {summary_day} in company #{company_id} already exists"}), 409
 
     except Exception as e:
-        current_app.logger.error(f"Error for {summary_day} in #{company_id}: {e}")
+        current_app.logger.error(f"Error creating summary via employee {employee_id} for {summary_day}: {e}")
         return jsonify({"error": "Error."}), 500
 
 
