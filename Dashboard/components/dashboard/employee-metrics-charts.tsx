@@ -26,7 +26,7 @@ export function EmployeeMetricsCharts({
       0
     )
     const conflicts = records.filter(
-      (r) => r.conflict_value !== null && r.conflict_value! > 0
+      (r) => r.sentiment !== null && r.sentiment! == "Negative"
     )
     const conflictPct =
       totalCalls > 0 ? (conflicts.length / totalCalls) * 100 : 0

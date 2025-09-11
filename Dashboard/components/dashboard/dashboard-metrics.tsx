@@ -6,6 +6,7 @@ import { CallsTable } from "@/components/dashboard/calls-table"
 import { EmployeeMetricsCharts } from "@/components/dashboard/employee-metrics-charts"
 import { format } from "date-fns"
 import { CallRecord, CallRecordStatsResponse, Employee } from "@/lib/api/apiTypes"
+import { CallSummary } from "@/components/dashboard/call-summary" // Import the new component
 
 interface DashboardMetricsProps {
   stats: CallRecordStatsResponse
@@ -93,6 +94,7 @@ export function DashboardMetrics({
           <CallsTable callRecords={callRecords} />
         </div>
       )}
+      <CallSummary />
     </div>
   )
 }

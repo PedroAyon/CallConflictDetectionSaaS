@@ -1,7 +1,7 @@
 import requests
 import os
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pydub import AudioSegment
 
 # --- Configuration ---
@@ -9,7 +9,7 @@ from pydub import AudioSegment
 BASE_URL = "http://127.0.0.1:5000"
 LOGIN_URL = f"{BASE_URL}/login"
 API_URL = f"{BASE_URL}/call_records"
-TEST_FILENAME = "/home/pedro-ayon/Downloads/test_audio4.m4a"
+TEST_FILENAME = "/home/pedro-ayon/Downloads/audios/test11.m4a"
 
 
 def get_auth_token(username: str, password: str) -> str | None:
@@ -54,7 +54,9 @@ def send_test_request(token: str):
     Args:
         token (str): The JWT authentication token for the request header.
     """
-    call_timestamp = datetime.now(timezone.utc).isoformat()
+    gmt6_offset = timezone(timedelta(hours=-6))
+    gmt6_time = datetime.now(timezone.utc).astimezone(gmt6_offset)
+    call_timestamp = gmt6_time.isoformat()
 
     # Define the headers, including the authorization token
     headers = {

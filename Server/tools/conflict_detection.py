@@ -37,37 +37,33 @@ class ConflictDetector:
         Returns:
             bool: True if conflict is detected, False otherwise.
         """
-        exchanges = conversation.strip().split("\n")
         # Get the maximum length for the translation model's input
         max_translation_length = self.translation_tokenizer.model_max_length
 
-        for exchange in exchanges:
-            try:
-                # Encode the exchange to get token length and truncate if necessary.
-                # This prevents the "Token indices sequence length is longer..." error.
-                tokens = self.translation_tokenizer.encode(
-                    exchange,
-                    truncation=True,
-                    max_length=max_translation_length
-                )
+        try:
+            # Encode the exchange to get token length and truncate if necessary.
+            # This prevents the "Token indices sequence length is longer..." error.
+            tokens = self.translation_tokenizer.encode(
+                conversation,
+                truncation=True,
+                max_length=max_translation_length
+            )
 
-                # Decode the tokens back to a string for translation
-                truncated_exchange = self.translation_tokenizer.decode(tokens, skip_special_tokens=True)
+            # Decode the tokens back to a string for translation
+            truncated_exchange = self.translation_tokenizer.decode(tokens, skip_special_tokens=True)
 
-                # Translate the exchange to English
-                translated = self.translator(truncated_exchange)[0]['translation_text']
-                print(f"Translated: {translated}")
+            # Translate the exchange to English
+            translated = self.translator(truncated_exchange)[0]['translation_text']
+            print(f"Translated: {translated}")
 
-                # Analyze sentiment on the English text
-                sentiment = self.sentiment_analyzer(translated)[0]
-                label = self.label_map.get(sentiment['label'], sentiment['label'])
-                score = sentiment['score']
-                print(f"Sentiment: {label} (score: {score:.4f})")
-
-                # Detect strong negative sentiment
-                if label == "Negative" and score > 0.9:
-                    return True
-            except Exception as e:
-                print(f"Error processing line: {exchange}\n{e}")
-                continue
+            # Analyze sentiment on the English text
+            sentiment = self.sentiment_analyzer(translated)[0]
+            label = self.label_map.get(sentiment['label'], sentiment['label'])
+            score = sentiment['score']
+            print(f"Sentiment: {label} (score: {score:.4f})")
+            if label == "Negative" and score < 0.8:
+                label = "Neutral"
+            return label
+        except Exception as e:
+            print(f"Error processing line: {conversation}\n{e}")
         return False

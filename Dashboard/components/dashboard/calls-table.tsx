@@ -29,13 +29,14 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { CallRecord } from "@/lib/api/apiTypes"
-import { useDashboardData } from "@/lib/hooks/useDashboardData"
+import { useDashboardData } from "../../lib/hooks/useDashboardData"
 
 interface CallsTableProps {
   callRecords: CallRecord[]
 }
 
 export function CallsTable({ callRecords }: CallsTableProps) {
+  console.log("Call Records:", callRecords) // Debugging line
   const { getCallRecording } = useDashboardData()
 
   const [currentAudio, setCurrentAudio] = useState<{
@@ -124,7 +125,7 @@ export function CallsTable({ callRecords }: CallsTableProps) {
 
   if (!callRecords.length) {
     return <div>No hay llamadas registradas</div>
-  }  
+  }
 
   return (
     <>
@@ -135,6 +136,7 @@ export function CallsTable({ callRecords }: CallsTableProps) {
               <TableHead>Empleado</TableHead>
               <TableHead>Fecha y Hora</TableHead>
               <TableHead>Duración</TableHead>
+              <TableHead>Categoría</TableHead>
               <TableHead>Análisis</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
@@ -155,25 +157,36 @@ export function CallsTable({ callRecords }: CallsTableProps) {
                 </TableCell>
                 <TableCell>
                   {Math.floor(record.call_duration / 60)}:
-                  {record.call_duration
-                    .toString()
-                    .padStart(2, "0")}
+                  {record.call_duration - Math.floor(record.call_duration / 60) * 60}
                 </TableCell>
                 <TableCell>
-                  {record.conflict_value != null ? (
+                  {record.category_name ? (
+                    <Badge variant="secondary">
+                      {record.category_name}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Sin Categoría</Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {record.sentiment != null ? (
                     <Badge
-                      variant={
-                        record.conflict_value > 0
-                          ? "destructive"
-                          : "outline"
+                      className={
+                        record.sentiment === "Positive"
+                          ? "bg-green-500 text-white"
+                          : record.sentiment === "Negative"
+                          ? "bg-destructive text-destructive-foreground hover:bg-destructive/80"
+                          : "border bg-accent text-accent-foreground"
                       }
                     >
-                      {record.conflict_value > 0
+                      {record.sentiment === "Positive"
+                        ? "Positivo"
+                        : record.sentiment === "Negative"
                         ? "Conflicto"
                         : "Normal"}
                     </Badge>
                   ) : (
-                    <Badge variant="outline">N/A</Badge>
+                    <Badge variant="outline">{record.sentiment}</Badge>
                   )}
                 </TableCell>
                 <TableCell>

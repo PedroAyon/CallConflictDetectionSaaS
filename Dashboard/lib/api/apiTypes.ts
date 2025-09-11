@@ -121,3 +121,17 @@ export interface CallRecordStatsResponse {
         employee_id: number | null;
     };
 }
+
+export interface Category {
+    category_id: number;
+    company_id: number;
+    category_name: string;
+    category_description: string | null;
+}
+
+export interface AddCategoryRequest {
+    category_name: string;
+    category_description?: string;
+}
+
+export type CategoryListResponse = Category[];

@@ -105,6 +105,17 @@ class Database:
             )
             return cursor.fetchone() is not None
 
+    def get_company_by_id(self, company_id: int) -> Optional[Dict]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT company_id FROM companies WHERE company_id = ?", (company_id,)
+            )
+            company_data = cursor.fetchone()
+            if company_data:
+                return dict(company_data)
+            return None
+
     def get_company_id_by_employee_id(self, employee_id: int) -> Optional[int]:
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -163,9 +174,8 @@ class Database:
             )
             conn.execute(
                 """
-                INSERT INTO employees (
-                    company_id, user_username, first_name, last_name, gender, birthdate
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO employees (company_id, user_username, first_name, last_name, gender, birthdate)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (company_id, username, first_name, last_name, gender, birthdate)
             )
@@ -175,8 +185,13 @@ class Database:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT e.employee_id, e.user_username AS username, 
-                       e.first_name, e.last_name, e.gender, e.birthdate, e.company_id
+                SELECT e.employee_id,
+                       e.user_username AS username,
+                       e.first_name,
+                       e.last_name,
+                       e.gender,
+                       e.birthdate,
+                       e.company_id
                 FROM employees e
                 WHERE e.company_id = ?
                 """,
@@ -185,14 +200,14 @@ class Database:
             return [dict(row) for row in cursor.fetchall()]
 
     def update_employee(
-        self,
-        employee_id: int,
-        new_username: str,
-        new_password: Optional[str],   # now optional
-        first_name: str,
-        last_name: str,
-        gender: Optional[str] = None,
-        birthdate: Optional[str] = None
+            self,
+            employee_id: int,
+            new_username: str,
+            new_password: Optional[str],  # now optional
+            first_name: str,
+            last_name: str,
+            gender: Optional[str] = None,
+            birthdate: Optional[str] = None
     ) -> None:
         last_updated = datetime.now(timezone.utc)
 
@@ -242,7 +257,6 @@ class Database:
                 tuple(params)
             )
             conn.commit()
-
 
     def delete_employee(self, employee_id: int) -> None:
         with self._get_connection() as conn:
@@ -300,19 +314,18 @@ class Database:
         with self._get_connection() as conn:
             conn.execute(
                 """
-                INSERT INTO call_records (
-                    employee_id, category_id, call_timestamp, call_duration, transcription,
-                    audio_file_path, conflict_detected
-                ) VALUES (?, null, ?, ?, ?, ?, ?)
+                INSERT INTO call_records (employee_id, category_id, call_timestamp, call_duration, transcription,
+                                          audio_file_path, sentiment)
+                VALUES (?, null, ?, ?, ?, ?, ?)
                 """,
                 (employee_id, timestamp, duration, transcription, audio_path, conflict)
             )
 
-    def update_call_analysis(self, audio_file_path: str, transcription: str, conflict: bool):
+    def update_call_analysis(self, audio_file_path: str, transcription: str, conflict: bool, category_id: int):
         with self._get_connection() as conn:
             conn.execute(
-                "UPDATE call_records SET transcription = ?, conflict_detected = ? WHERE audio_file_path = ?",
-                (transcription, conflict, audio_file_path)
+                "UPDATE call_records SET transcription = ?, sentiment = ?, category_id = ? WHERE audio_file_path = ?",
+                (transcription, conflict, category_id, audio_file_path)
             )
 
     def get_call_records(
@@ -323,21 +336,23 @@ class Database:
             employee_id_filter: Optional[int] = None
     ) -> List[Dict]:
         query = """
-            SELECT 
-                cr.call_id,
-                cr.employee_id,
-                cr.call_timestamp,
-                cr.call_duration,
-                cr.transcription,
-                cr.audio_file_path,
-                cr.conflict_detected AS conflict_value,
-                e.user_username AS employee_username, 
-                e.first_name AS employee_first_name, 
-                e.last_name AS employee_last_name
-            FROM call_records cr
-            JOIN employees e ON cr.employee_id = e.employee_id
-            WHERE e.company_id = ? AND cr.call_timestamp BETWEEN ? AND ?
-        """
+                SELECT cr.call_id, \
+                       cr.employee_id, \
+                       cr.call_timestamp, \
+                       cr.call_duration, \
+                       cr.transcription, \
+                       cr.audio_file_path, \
+                       cr.sentiment, \
+                       c.category_name, \
+                       e.user_username      AS employee_username, \
+                       e.first_name         AS employee_first_name, \
+                       e.last_name          AS employee_last_name
+                FROM call_records cr
+                         JOIN employees e ON cr.employee_id = e.employee_id
+                         LEFT JOIN categories c ON cr.category_id = c.category_id
+                WHERE e.company_id = ? \
+                  AND cr.call_timestamp BETWEEN ? AND ? \
+                """
         params: List[any] = [company_id, start_time, end_time]  # Type 'any' for params list
 
         if employee_id_filter is not None:
@@ -403,15 +418,20 @@ class Database:
             row = cursor.fetchone()
             return row['summary'] if row else None
 
-    def add_daily_summary(self, company_id: int, summary_day: str, summary_text: str) -> Optional[int]:
-        query = "INSERT OR IGNORE INTO daily_summary (company_id, day, summary) VALUES (?, ?, ?);"
+    def add_or_update_daily_summary(self, company_id: int, summary_day: str, summary_text: str):
+        """
+        Adds a daily summary or updates it if one already exists for the given company and day.
+        """
+        query = """
+            INSERT OR REPLACE INTO daily_summary (company_id, day, summary)
+            VALUES (?, ?, ?);
+        """
         params = (company_id, summary_day, summary_text)
-        
+
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             conn.commit()
-        
 
     def update_daily_summary(self, company_id: int, summary_day: str, summary_text: str) -> int:
         query = "UPDATE daily_summary SET summary = ? WHERE day = ? AND company_id = ?;"
@@ -421,19 +441,15 @@ class Database:
             cursor = conn.cursor()
             cursor.execute(query, params)
             conn.commit()
-        
 
     def get_company_id_by_emp_id(self, employee_id: int) -> Optional[int]:
         query = """
-            SELECT 
-                c.company_id 
-            FROM 
-                companies c
-            JOIN 
-                employees e ON c.company_id = e.company_id
-            WHERE 
-                e.employee_id = ?;
-        """
+                SELECT c.company_id
+                FROM companies c \
+                         JOIN \
+                     employees e ON c.company_id = e.company_id
+                WHERE e.employee_id = ?; \
+                """
         params = (employee_id,)
 
         with self._get_connection() as conn:

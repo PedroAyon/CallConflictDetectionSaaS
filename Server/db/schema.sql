@@ -48,14 +48,14 @@ CREATE TABLE IF NOT EXISTS call_records (
     call_duration INTEGER NOT NULL CHECK(call_duration >= 0),
     transcription TEXT,
     audio_file_path TEXT NOT NULL UNIQUE,
-    conflict_detected BOOLEAN,
+    sentiment TEXT,
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
         ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(category_id)
         ON DELETE SET NULL ON UPDATE CASCADE,
     CHECK (
-        (transcription IS NULL AND conflict_detected IS NULL)
-        OR (transcription IS NOT NULL AND conflict_detected IN (0,1))
+        (transcription IS NULL AND sentiment IS NULL)
+        OR (transcription IS NOT NULL AND sentiment IN ('Positive', 'Negative', 'Neutral'))
     )
 );
 
