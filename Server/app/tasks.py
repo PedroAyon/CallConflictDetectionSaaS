@@ -6,7 +6,8 @@ from app.extensions import (
     audio_queue,
     db_service,
     speech_recognition_service,
-    conflict_analysis_service
+    conflict_analysis_service,
+    gemini
 )
 
 logger = logging.getLogger(__name__)
@@ -58,3 +59,29 @@ def start_background_tasks():
     """Starts the background worker threads."""
     # daemon=True ensures the thread exits when the main process exits
     threading.Thread(target=audio_processing_worker, daemon=True, name="AudioWorker").start()
+
+def summarize_with_gemini(transcriptions: str) -> str:
+   
+    if not gemini:
+        logging.warning("Gemini service is not available or not configured.")
+        return "Error"
+
+    try:
+       
+        with open('CallConflictDetectionSaaS/Server/tools/prompt.md', 'r', encoding='utf-8') as f:
+            prompt_template = f.read()
+
+        full_prompt = prompt_template.format(transcriptions_text=transcriptions)
+
+        response = gemini.generate_content(full_prompt)
+        
+        return response.text
+
+    except FileNotFoundError:
+        error_msg = "Error: No prompt'."
+        logging.error(error_msg)
+        return error_msg
+    except Exception as e:
+        error_msg = f"Error: {e}"
+        logging.error(error_msg)
+        return error_msg
