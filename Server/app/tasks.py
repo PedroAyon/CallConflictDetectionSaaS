@@ -68,7 +68,7 @@ def summarize_with_gemini(transcriptions: str) -> str:
 
     try:
        
-        with open('CallConflictDetectionSaaS/Server/tools/prompt.md', 'r', encoding='utf-8') as f:
+        with open('CallConflictDetectionSaaS/Server/prompt/prompt.md', 'r', encoding='utf-8') as f:
             prompt_template = f.read()
 
         full_prompt = prompt_template.format(transcriptions_text=transcriptions)

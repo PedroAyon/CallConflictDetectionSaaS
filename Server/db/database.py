@@ -301,9 +301,9 @@ class Database:
             conn.execute(
                 """
                 INSERT INTO call_records (
-                    employee_id, call_timestamp, call_duration, transcription,
+                    employee_id, category_id, call_timestamp, call_duration, transcription,
                     audio_file_path, conflict_detected
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                ) VALUES (?, null, ?, ?, ?, ?, ?)
                 """,
                 (employee_id, timestamp, duration, transcription, audio_path, conflict)
             )
@@ -391,6 +391,17 @@ class Database:
         cursor.execute("UPDATE users SET password_hash=?, last_updated=? WHERE username=?",
                        (password_hash, last_updated.isoformat(), username))
         conn.commit()
+
+    def get_summary_at_day(self, company_id: int, summary_day: str) -> Optional[str]:
+        """Retrieves a daily summary for a specific company and day."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT summary FROM daily_summary WHERE company_id = ? AND day = ?",
+                (company_id, summary_day)
+            )
+            row = cursor.fetchone()
+            return row['summary'] if row else None
 
     def add_daily_summary(self, company_id: int, summary_day: str, summary_text: str) -> Optional[int]:
         query = "INSERT OR IGNORE INTO daily_summary (company_id, day, summary) VALUES (?, ?, ?);"

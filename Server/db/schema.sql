@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS call_records (
     conflict_detected BOOLEAN,
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
         ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES category(category_id)
+    FOREIGN KEY (category_id) REFERENCES categories(category_id)
         ON DELETE SET NULL ON UPDATE CASCADE,
     CHECK (
         (transcription IS NULL AND conflict_detected IS NULL)

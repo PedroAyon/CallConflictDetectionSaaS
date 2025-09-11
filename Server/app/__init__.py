@@ -22,6 +22,7 @@ def create_app(config_object=config):
     from app.routes.employees import employees_bp
     from app.routes.calls import calls_bp
     from app.routes.categories import categories_bp
+    from app.routes.daily_summary import summary_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)
@@ -29,6 +30,7 @@ def create_app(config_object=config):
     app.register_blueprint(employees_bp)
     app.register_blueprint(calls_bp)
     app.register_blueprint(categories_bp)
+    app.register_blueprint(summary_bp)
 
     # Register error handlers
     register_error_handlers(app)

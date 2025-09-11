@@ -3,7 +3,7 @@ from db.database import Database
 
 def seed_data(db: Database):
     """
-    Seeds the database with initial users, companies, and employees.
+    Seeds the database with initial users, companies, employees, and categories.
     """
 
     # 1. Create admin users
@@ -34,7 +34,7 @@ def seed_data(db: Database):
             )
             company = db.get_company_by_admin(comp["admin_username"])
             if company and "company_id" in company:
-                company_ids[comp["admin_username"]] = company["company_id"]
+                company_ids[comp["name"]] = company["company_id"] # Store by company name for categories
                 print(f"Added company: {comp['name']} (ID: {company['company_id']})")
             else:
                 print(f"Company created but not found: {comp['name']}")
@@ -43,14 +43,14 @@ def seed_data(db: Database):
 
     # 3. Create employees for each company
     employees = [
-        {"admin_username": "admin", "username": "bob",   "password": "passbob",   "first_name": "Bob",   "last_name": "Smith",   "gender": "M", "birthdate": "1990-05-15"},
-        {"admin_username": "admin2","username": "alice", "password": "passalice", "first_name": "Alice", "last_name": "Johnson", "gender": "F", "birthdate": "1988-11-22"}
+        {"company_name": "PC Components", "username": "bob",   "password": "passbob",   "first_name": "Bob",   "last_name": "Smith",   "gender": "M", "birthdate": "1990-05-15"},
+        {"company_name": "BetaSolutions", "username": "alice", "password": "passalice", "first_name": "Alice", "last_name": "Johnson", "gender": "F", "birthdate": "1988-11-22"}
     ]
     for emp in employees:
-        admin_user = emp["admin_username"]
-        company_id = company_ids.get(admin_user)
+        company_name = emp["company_name"]
+        company_id = company_ids.get(company_name)
         if not company_id:
-            print(f"Skipping employee {emp['username']}: company for admin {admin_user} not found.")
+            print(f"Skipping employee {emp['username']}: company '{company_name}' not found.")
             continue
         try:
             db.add_user(emp["username"], emp["password"])
@@ -67,8 +67,32 @@ def seed_data(db: Database):
         except Exception as e:
             print(f"Error adding employee {emp['username']}: {e}")
 
+    # 4. Add categories for "PC Components" company
+    pc_components_id = company_ids.get("PC Components")
+    if pc_components_id:
+        categories = [
+            {"name": "Devoluciones y Reembolsos", "description": "El cliente devuelve un producto y solicita uno nuevo, o pide un reembolso"},
+            {"name": "Dudas Técnicas", "description": "Dudas técnicas sobre componentes de PC"},
+            {"name": "Quejas", "description": "El cliente tiene una queja de un producto o servicio"},
+            {"name": "Trámite de Garantía", "description": "El cliente desea aplicar la garantía de su producto"},
+            {"name": "Problemas con la Plataforma", "description": "El cliente tuvo un problema usando nuestra plataforma"}
+        ]
+        for cat in categories:
+            try:
+                db.add_category(
+                    company_id=pc_components_id,
+                    name=cat["name"],
+                    description=cat["description"]
+                )
+                print(f"Added category '{cat['name']}' to PC Components.")
+            except Exception as e:
+                print(f"Error adding category '{cat['name']}': {e}")
+    else:
+        print("Could not add categories: Company 'PC Components' not found.")
+
 
 if __name__ == "__main__":
     database = Database()
+    print("Seeding database...")
     seed_data(database)
     print("Database seeding completed.")
