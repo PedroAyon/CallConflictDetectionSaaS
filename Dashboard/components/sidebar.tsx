@@ -19,6 +19,11 @@ const navItems = [
     href: "/dashboard/employees",
     icon: Users,
   },
+  {
+    name: "Categorías",
+    href: "/dashboard/categories",
+    icon: Users,
+  },
 ]
 
 export function Sidebar() {

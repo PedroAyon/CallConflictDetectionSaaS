@@ -5,6 +5,7 @@ import { companyService } from './companyService';
 import { employeeService } from './employeeService';
 import { callRecordService } from './callRecordService';
 import { recordingService } from './recordingService';
+import { categoryService } from './categoryApiService';
 
 export const api = {
     auth: authService,
@@ -13,4 +14,5 @@ export const api = {
     employees: employeeService,
     callRecords: callRecordService,
     recordings: recordingService,
+    categories: categoryService
 };
