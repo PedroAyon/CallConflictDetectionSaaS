@@ -391,3 +391,22 @@ class Database:
         cursor.execute("UPDATE users SET password_hash=?, last_updated=? WHERE username=?",
                        (password_hash, last_updated.isoformat(), username))
         conn.commit()
+
+    def add_daily_summary(self, company_id: int, summary_day: str, summary_text: str) -> Optional[int]:
+        query = "INSERT OR IGNORE INTO daily_summary (company_id, day, summary) VALUES (?, ?, ?);"
+        params = (company_id, summary_day, summary_text)
+        
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            conn.commit()
+        
+
+    def update_daily_summary(self, company_id: int, summary_day: str, summary_text: str) -> int:
+        query = "UPDATE daily_summary SET summary = ? WHERE day = ? AND company_id = ?;"
+        params = (summary_text, summary_day, company_id)
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            conn.commit()
