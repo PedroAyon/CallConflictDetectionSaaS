@@ -259,6 +259,35 @@ class Database:
             conn.execute("DELETE FROM users WHERE username = ?", (username,))
             conn.commit()
 
+    def add_category(self, company_id: int, name: str, description: Optional[str]):
+        """Adds a new category for a company."""
+        with self._get_connection() as conn:
+            conn.execute(
+                "INSERT INTO categories (company_id, category_name, category_description) VALUES (?, ?, ?)",
+                (company_id, name, description)
+            )
+
+    def get_categories_by_company(self, company_id: int) -> List[Dict]:
+        """Retrieves all categories for a specific company."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM categories WHERE company_id = ?",
+                (company_id,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def delete_category(self, company_id: int, category_id: int):
+        """Deletes a category for a specific company."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "DELETE FROM categories WHERE category_id = ? AND company_id = ?",
+                (category_id, company_id)
+            )
+            if cursor.rowcount == 0:
+                raise ValueError(f"Category ID {category_id} not found or does not belong to company {company_id}.")
+
     def add_call_record(
             self,
             employee_id: int,

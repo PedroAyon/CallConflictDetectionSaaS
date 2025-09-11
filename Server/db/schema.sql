@@ -30,9 +30,20 @@ CREATE TABLE IF NOT EXISTS employees (
     UNIQUE(company_id, user_username)
 );
 
+CREATE TABLE IF NOT EXISTS categories (
+    category_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL,
+    category_name TEXT NOT NULL,
+    category_description TEXT,
+    FOREIGN KEY (company_id) REFERENCES companies(company_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE(category_name)
+);
+
 CREATE TABLE IF NOT EXISTS call_records (
     call_id INTEGER PRIMARY KEY AUTOINCREMENT,
     employee_id INTEGER NOT NULL,
+    category_id INTEGER,
     call_timestamp TEXT NOT NULL,
     call_duration INTEGER NOT NULL CHECK(call_duration >= 0),
     transcription TEXT,
@@ -40,6 +51,8 @@ CREATE TABLE IF NOT EXISTS call_records (
     conflict_detected BOOLEAN,
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
         ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES category(category_id)
+        ON DELETE SET NULL ON UPDATE CASCADE,
     CHECK (
         (transcription IS NULL AND conflict_detected IS NULL)
         OR (transcription IS NOT NULL AND conflict_detected IN (0,1))

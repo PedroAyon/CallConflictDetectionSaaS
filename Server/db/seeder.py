@@ -20,7 +20,7 @@ def seed_data(db: Database):
 
     # 2. Create companies and track their IDs by admin_username
     companies = [
-        {"name": "AcmeCorp", "expiration": "2025-12-31", "admin_username": "admin", "admin_password": "123"},
+        {"name": "PC Components", "expiration": "2025-12-31", "admin_username": "admin", "admin_password": "123"},
         {"name": "BetaSolutions", "expiration": "2026-06-30", "admin_username": "admin2", "admin_password": "123"}
     ]
     company_ids = {}

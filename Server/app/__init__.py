@@ -21,12 +21,14 @@ def create_app(config_object=config):
     from app.routes.companies import companies_bp
     from app.routes.employees import employees_bp
     from app.routes.calls import calls_bp
+    from app.routes.categories import categories_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)
     app.register_blueprint(companies_bp)
     app.register_blueprint(employees_bp)
     app.register_blueprint(calls_bp)
+    app.register_blueprint(categories_bp)
 
     # Register error handlers
     register_error_handlers(app)

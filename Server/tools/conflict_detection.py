@@ -1,18 +1,23 @@
 from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
 
+
 class ConflictDetector:
     def __init__(self):
         """Initializes the translation and sentiment analysis pipelines."""
-        # Translator from Spanish to English
+        # Load tokenizer and model for translator
+        translation_model_name = "Helsinki-NLP/opus-mt-es-en"
+        self.translation_tokenizer = AutoTokenizer.from_pretrained(translation_model_name)
         self.translator = pipeline(
             "translation_es_to_en",
-            model="Helsinki-NLP/opus-mt-es-en"
+            model=translation_model_name,
+            tokenizer=self.translation_tokenizer
         )
+
         # Load tokenizer and model for sentiment analysis
-        model_name = "cardiffnlp/twitter-roberta-base-sentiment"
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSequenceClassification.from_pretrained(model_name)
-        self.sentiment_analyzer = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
+        sentiment_model_name = "cardiffnlp/twitter-roberta-base-sentiment"
+        sentiment_tokenizer = AutoTokenizer.from_pretrained(sentiment_model_name)
+        sentiment_model = AutoModelForSequenceClassification.from_pretrained(sentiment_model_name)
+        self.sentiment_analyzer = pipeline("sentiment-analysis", model=sentiment_model, tokenizer=sentiment_tokenizer)
 
         # Map label IDs to human-readable form
         self.label_map = {
@@ -33,10 +38,24 @@ class ConflictDetector:
             bool: True if conflict is detected, False otherwise.
         """
         exchanges = conversation.strip().split("\n")
+        # Get the maximum length for the translation model's input
+        max_translation_length = self.translation_tokenizer.model_max_length
+
         for exchange in exchanges:
             try:
+                # Encode the exchange to get token length and truncate if necessary.
+                # This prevents the "Token indices sequence length is longer..." error.
+                tokens = self.translation_tokenizer.encode(
+                    exchange,
+                    truncation=True,
+                    max_length=max_translation_length
+                )
+
+                # Decode the tokens back to a string for translation
+                truncated_exchange = self.translation_tokenizer.decode(tokens, skip_special_tokens=True)
+
                 # Translate the exchange to English
-                translated = self.translator(exchange, max_length=512)[0]['translation_text']
+                translated = self.translator(truncated_exchange)[0]['translation_text']
                 print(f"Translated: {translated}")
 
                 # Analyze sentiment on the English text
