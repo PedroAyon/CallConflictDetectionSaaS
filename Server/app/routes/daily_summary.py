@@ -22,7 +22,7 @@ def format_transcriptions_for_summary(records: List[Dict]) -> str:
             last_name = rec.get('employee_last_name', '-')
             employee_name = f"{first_name} {last_name}".strip()
 
-            formatted_lines.append(f"---{employee_name} {rec['transcription']}")
+            formatted_lines.append(f"Nombre del empleado: {employee_name}\nTranscripción: {rec['transcription']}")
     return "\n\n".join(formatted_lines)
 
 

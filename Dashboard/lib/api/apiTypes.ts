@@ -92,11 +92,13 @@ export type EmployeeListResponse = Employee[];
 export interface CallRecord {
     call_id: number;
     employee_id: number;
+    category_id: number | null; // Added based on new schema
+    category_name?: string | null; // Added for display purposes
     call_timestamp: string; // ISO 8601 string
     call_duration: number;
     transcription: string | null;
     audio_filename: string;
-    conflict_value: number | null;
+    sentiment: string | null;
     employee_username?: string;
     employee_first_name?: string;
     employee_last_name?: string;
@@ -110,7 +112,7 @@ export interface CallRecordFilters {
     employee_id?: number;
 }
 
-export interface CallRecordStatsResponse {
+export interface CallRecordStatsPResponse {
     total_calls: number;
     total_duration_seconds: number;
     conflict_percentage: number;

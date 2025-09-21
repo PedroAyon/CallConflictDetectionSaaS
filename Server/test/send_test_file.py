@@ -9,7 +9,7 @@ from pydub import AudioSegment
 BASE_URL = "http://127.0.0.1:5000"
 LOGIN_URL = f"{BASE_URL}/login"
 API_URL = f"{BASE_URL}/call_records"
-TEST_FILENAME = "/home/pedro-ayon/Downloads/audios/test11.m4a"
+TEST_FILENAME = "/home/pedro-ayon/Downloads/audios/final.m4a"
 
 
 def get_auth_token(username: str, password: str) -> str | None:
@@ -93,12 +93,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Send a test audio recording to the Call Conflict Detection API.")
     parser.add_argument(
         "--username",
-        default="bob",
+        default="pedro",
         help="The username for authentication. Defaults to 'bob'."
     )
     parser.add_argument(
         "--password",
-        default="passbob",
+        default="123",
         help="The password for authentication. Defaults to 'passbob'."
     )
     args = parser.parse_args()

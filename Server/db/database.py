@@ -379,7 +379,7 @@ class Database:
         total = len(records)
         if total == 0:
             return 0.0
-        conflicts = sum(1 for r in records if r.get('conflict_value') in (1, True))
+        conflicts = sum(1 for r in records if r.get('sentiment') == 'Negative')
         return (conflicts / total) * 100.0
 
     def get_user_last_updated(self, username: str) -> Optional[datetime]:

@@ -60,7 +60,7 @@ export function DashboardMetrics({
         <Card>
           <CardHeader className="flex justify-between pb-2">
             <CardTitle className="text-sm font-medium">
-              Porcentaje de Conflictos
+              Tasa de Conflictos
             </CardTitle>
           </CardHeader>
           <CardContent>

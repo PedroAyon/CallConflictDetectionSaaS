@@ -61,8 +61,8 @@ class ConflictDetector:
             label = self.label_map.get(sentiment['label'], sentiment['label'])
             score = sentiment['score']
             print(f"Sentiment: {label} (score: {score:.4f})")
-            if label == "Negative" and score < 0.8:
-                label = "Neutral"
+            # if label == "Negative" and score < 0.7:
+            #     label = "Neutral"
             return label
         except Exception as e:
             print(f"Error processing line: {conversation}\n{e}")
